@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x
 mkdir -p smoke-output
 trap 'adb logcat -d > smoke-output/logcat.txt; adb exec-out screencap -p > smoke-output/final.png' EXIT
 adb install -r dist/RJM-Android-0.1.0.apk
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
+adb shell settings put secure immersive_mode_confirmations confirmed
+# The cold emulator's Google launcher can show its own ANR during first boot.
+# Start the game after initial system setup rather than interacting with that dialog.
+adb shell am force-stop com.google.android.apps.nexuslauncher
+sleep 10
 adb logcat -c
 adb shell am start -W -n com.gasarios.rjm/.RjmActivity
 sleep 5
@@ -22,6 +28,10 @@ for name,x,y in [('FIRE',640,680),('GUNS',70,590),('SHOTGUN',620,360),('RESUME',
  print(f'{name}_X={round(ox+x*s)}; {name}_Y={round(oy+y*s)}')
 PY
 source smoke-output/points.sh
+if adb logcat -d | grep 'RJM: menu=2' > /dev/null; then
+  adb shell input tap "$RESUME_X" "$RESUME_Y"
+  sleep 1
+fi
 adb shell input tap "$FIRE_X" "$FIRE_Y"
 sleep 1
 adb logcat -d | grep -q 'RJM: fire'
@@ -40,6 +50,7 @@ sleep 1
 adb logcat -c
 adb shell input keyevent KEYCODE_HOME
 sleep 1
+adb shell am force-stop com.google.android.apps.nexuslauncher
 adb shell am start -W -n com.gasarios.rjm/.RjmActivity
 sleep 2
 adb exec-out screencap -p > smoke-output/resumed-paused.png

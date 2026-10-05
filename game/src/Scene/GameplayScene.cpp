@@ -313,8 +313,8 @@ namespace rjm
                     if (currentGun->AmmoInMagazine() <= 0)
                     {
 #ifdef __ANDROID__
-                        if (firePressed && !currentGun->IsReloading()) {
-                            mobileReload_.Request(player_.Weapons().CurrentSlot());
+                        if (firePressed) {
+                            if (!currentGun->IsReloading()) mobileReload_.Request(player_.Weapons().CurrentSlot());
                             mobile::Controls().BlockFireUntilRelease();
                             TraceLog(LOG_INFO, "RJM: reload queued slot=%d grounded=%d", player_.Weapons().CurrentSlot(), player_.IsGrounded());
                         }
@@ -1058,6 +1058,10 @@ namespace rjm
         }
 
         playerLifeState_ = PlayerLifeState::GameOver;
+#ifdef __ANDROID__
+        mobile::Controls().BlockFireUntilRelease();
+        mobileReload_ = mobile::ReloadQueue{};
+#endif
         inputFocus_ = InputFocus::Pause;
         gameOverRemainingSeconds_ = gameOverRecoverDelaySeconds_;
         player_.SetVelocity({ 0.0f, 0.0f });
