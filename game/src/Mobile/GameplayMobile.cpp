@@ -36,7 +36,7 @@ void GameplayScene::LoadMobileCheckpoint() {
     float zoom=mobile::MobileTuning::DefaultZoom;
     if(!(file>>version>>position.x>>position.y>>slot>>assist>>shake) ||
        (version!="RJM_CHECKPOINT_1" && version!="RJM_CHECKPOINT_2")) return;
-    if(version=="RJM_CHECKPOINT_2" && (!(file>>mode>>zoom) || mode<0 || mode>1 || !std::isfinite(zoom))) return;
+    if(version=="RJM_CHECKPOINT_2" && (!(file>>mode>>zoom) || mode<0 || mode>=mobile::AimModeCount || !std::isfinite(zoom))) return;
     const Rectangle bounds=level_.WorldBounds();const float half=player_.HalfBodySize();
     if(!std::isfinite(position.x)||!std::isfinite(position.y)||slot<0||slot>=3||
        position.x<bounds.x+half||position.x>bounds.x+bounds.width-half||
@@ -72,7 +72,8 @@ bool GameplayScene::UpdateMobile(GameContext& context,float deltaSeconds) {
         case Action::ToggleAssist:mobileAssist_=!mobileAssist_;SaveMobileCheckpoint();break;
         case Action::ToggleShake:mobileShake_=!mobileShake_;SaveMobileCheckpoint();break;
         case Action::ToggleAimMode:
-            mobileAimMode_=mobileAimMode_==AimMode::Character?AimMode::ScreenCenter:AimMode::Character;
+            mobileAimMode_=NextAimMode(mobileAimMode_);
+            Controls().SetAimMode(mobileAimMode_);
             mobileAim_=MobileAim{};SaveMobileCheckpoint();
             TraceLog(LOG_INFO,"RJM: aim mode=%d",static_cast<int>(mobileAimMode_));break;
         case Action::ResetZoom:
@@ -98,15 +99,33 @@ void GameplayScene::DrawMobile() const {
     using namespace mobile;
     const auto& controls=Controls();const Vector2 size=controls.ScreenSize();
     const int shift=static_cast<int>((size.x-1280)*0.5f);
-    Button(InfoButton,"HELP");Button(BraceButton,"BRACE",player_.IsBracing());Button(WeaponsButton,"GUNS");
+    Button(InfoButton,"HELP");Button(BraceButton,"BRACE",player_.IsBracing());
+    Button(LeftReloadButton,"RELOAD");Button(WeaponsButton,"GUNS");
     const Gun* gun=player_.Weapons().Current();
     const char* status=player_.Weapons().IsAnyReloading()?"RELOADING ALL (ground only)":
         mobileReload_.Pending()?"SET RELOAD QUEUED - land to reload":
-        gun && gun->AmmoInMagazine()==0?"EMPTY - next input switches gun":"TAP: SHOOT | TWO FINGERS: ZOOM | BACK: PAUSE";
+        gun && gun->AmmoInMagazine()==0?"EMPTY - next input switches gun":IsPadMode(mobileAimMode_)?"PAD: HOLD TO FIRE | CENTER / RELEASE: STOP":"TAP: SHOOT | TWO FINGERS: ZOOM | BACK: PAUSE";
     DrawText(status,168,678,19,Color{183,214,239,255});
-    DrawText(TextFormat("%d FPS | 0.1.1 | %.2fx",GetFPS(),camera_.Zoom()),static_cast<int>(size.x)-310,20,18,Color{145,179,207,255});
-    DrawText(mobileAimMode_==AimMode::ScreenCenter?"AIM: SCREEN CENTER":"AIM: CHARACTER",static_cast<int>(size.x)-310,48,18,Color{145,179,207,255});
+    DrawText(TextFormat("%d FPS | 0.1.2 | %.2fx",GetFPS(),camera_.Zoom()),static_cast<int>(size.x)-310,20,18,Color{145,179,207,255});
+    DrawText(TextFormat("%d/4: %s",static_cast<int>(mobileAimMode_)+1,AimModeName(mobileAimMode_)),static_cast<int>(size.x)-310,48,18,Color{145,179,207,255});
     if(controls.CurrentMenu()==Menu::Gameplay) {
+        if(IsPadMode(mobileAimMode_)) {
+            const auto center=AimPad::Center(size);
+            const Color outline=controls.PadBlocked()?Color{245,177,89,210}:Color{144,198,233,180};
+            DrawCircleV(center,MobileTuning::PadRadius,Color{25,52,76,95});
+            DrawCircleLines(static_cast<int>(center.x),static_cast<int>(center.y),MobileTuning::PadRadius,outline);
+            DrawCircleLines(static_cast<int>(center.x),static_cast<int>(center.y),MobileTuning::PadDeadZone,Color{160,200,230,90});
+            if(controls.PadTouched()) {
+                const auto knob=controls.PadKnob();
+                DrawLineEx(center,knob,3,outline);
+            }
+            if(mobileAimMode_==AimMode::Joystick) {
+                DrawCircleV(controls.PadKnob(),MobileTuning::PadKnobRadius,Color{87,164,215,195});
+                DrawCircleLines(static_cast<int>(controls.PadKnob().x),static_cast<int>(controls.PadKnob().y),MobileTuning::PadKnobRadius,outline);
+            }
+            const char* label=controls.PadBlocked()?"RELEASE TO REARM":mobileAimMode_==AimMode::Joystick?"AIM PAD":"TOUCH CIRCLE";
+            DrawText(label,static_cast<int>(center.x)-MeasureText(label,17)/2,static_cast<int>(center.y+MobileTuning::PadRadius+10),17,outline);
+        }
         if(mobileAimMode_==AimMode::ScreenCenter) {
             const Vector2 center{size.x*0.5f,size.y*0.5f};
             DrawCircleLines(static_cast<int>(center.x),static_cast<int>(center.y),MobileTuning::AimDeadZone,Color{175,213,240,100});
@@ -142,23 +161,25 @@ void GameplayScene::DrawMobile() const {
         Button(RestartButton(),"RESTART TEST FIELD");
         Button(AssistButton(),mobileAssist_?"BULLET AIM ASSIST: ON":"BULLET AIM ASSIST: OFF");
         Button(ShakeButton(),mobileShake_?"CAMERA SHAKE: ON":"CAMERA SHAKE: OFF");
-        Button(AimModeButton(),mobileAimMode_==AimMode::Character?"AIM MODE: CHARACTER (tap to change)":"AIM MODE: SCREEN CENTER (tap to change)");
+        Button(AimModeButton(),TextFormat("CONTROL %d/4: %s (tap to cycle)",static_cast<int>(mobileAimMode_)+1,AimModeName(mobileAimMode_)));
         Button(ZoomResetButton(),TextFormat("ZOOM %.2fx - RESET TO 1.10x",camera_.Zoom()));
         DrawText(mobileNotice_.c_str(),shift+360,642,18,Color{145,214,247,255});
     } else {
         DrawText("RECOIL JUMP MAN",shift+250,158,34,RAYWHITE);
         const char* lines[]={
             "Tap to shoot. Recoil moves you in the opposite direction.",
-            "AIM MODE in pause: character target / screen-center direction.",
-            "SMG: hold and drag. Revolver / shotgun: tap each shot.",
+            "CONTROL in pause cycles 1: character / 2: screen center.",
+            "3: aim pad / 4: touch circle. Both use the same fixed center.",
+            "Modes 3/4: all guns repeat while held outside the small center.",
+            "Modes 1/2: SMG holds; revolver / shotgun use fresh taps.",
             "Empty gun: next shot input switches to the next ready gun.",
-            "All empty: a new tap queues the entire set reload on landing.",
-            "GUNS > RELOAD ALL also refills partly used magazines.",
+            "All empty: pad hold or fresh screen tap queues a set reload.",
+            "Release after a reload request. Left RELOAD refills all guns.",
             "Pinch with two world fingers to zoom; pause allows safe zoom.",
-            "Pinch fingers never become shots until released. BRACE is separate.",
+            "Pad / left buttons never become pinch fingers or other buttons.",
             "Hold BRACE on ground. Back pauses; app return stays paused.",
             "Prototype checkpoint restores position/settings; ammo resets."};
-        for(int i=0;i<10;++i) DrawText(lines[i],shift+250,224+i*38,19,Color{194,217,237,255});
+        for(int i=0;i<12;++i) DrawText(lines[i],shift+250,224+i*34,18,Color{194,217,237,255});
     }
 }
 }

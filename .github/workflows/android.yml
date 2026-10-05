@@ -34,11 +34,11 @@ jobs:
       - name: APK validation
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/RJM-Android-0.1.1.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/RJM-Android-0.1.1.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/RJM-Android-0.1.1.apk
-          unzip -l dist/RJM-Android-0.1.1.apk | grep -E 'lib/(arm64-v8a|x86_64)/librjm.so'
-          cd dist && sha256sum RJM-Android-0.1.1.apk > SHA256SUMS.txt
+          cp app/build/outputs/apk/debug/app-debug.apk dist/RJM-Android-0.1.2.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/RJM-Android-0.1.2.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging dist/RJM-Android-0.1.2.apk
+          unzip -l dist/RJM-Android-0.1.2.apk | grep -E 'lib/(arm64-v8a|x86_64)/librjm.so'
+          cd dist && sha256sum RJM-Android-0.1.2.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: RJM-Android-APK
@@ -98,4 +98,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "android-prototype-${{ github.run_number }}" dist/* --target '${{ github.sha }}' --prerelease --title 'RJM Android 0.1.1 prototype' --notes-file docs/release-0.1.1.md
+          gh release create "android-prototype-${{ github.run_number }}" dist/* --target '${{ github.sha }}' --prerelease --title 'RJM Android 0.1.2 prototype' --notes-file docs/release-0.1.2.md

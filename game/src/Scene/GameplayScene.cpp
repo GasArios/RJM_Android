@@ -179,6 +179,7 @@ namespace rjm
 #ifdef __ANDROID__
         camera_.SetZoomAnchored(mobile::MobileTuning::DefaultZoom,player_.Position());
         LoadMobileCheckpoint();
+        mobile::Controls().SetAimMode(mobileAimMode_);
         camera_.SnapTo(player_.Position());
         TraceLog(LOG_INFO, "RJM: ready");
 #endif
@@ -305,7 +306,7 @@ namespace rjm
                 // SemiAuto는 클릭 순간만, FullAuto는 누르고 있는 동안 쿨타임마다 TryFireAt을 시도합니다.
 #ifdef __ANDROID__
                 const auto request=mobile::ResolveWeaponFire(player_.Weapons(),firePressed,
-                    context.input->FireHeld() && mouseInsideGameViewport);
+                    context.input->FireHeld() && mouseInsideGameViewport,mobile::IsPadMode(mobileAimMode_));
                 currentGun=request.gun;
                 const bool wantsFire=request.fire;
                 if(request.switched) TraceLog(LOG_INFO,"RJM: auto switch slot=%d",player_.Weapons().CurrentSlot());
@@ -746,7 +747,7 @@ namespace rjm
 #ifdef __ANDROID__
         tuning.useAssistedTargetForRecoil = false;
         tuning.maxCorrectionDegrees = std::min(tuning.maxCorrectionDegrees, 6.0f);
-        tuning.directionOnly = mobileAimMode_==mobile::AimMode::ScreenCenter;
+        tuning.directionOnly = mobileAimMode_!=mobile::AimMode::Character;
         tuning.viewportSize = camera_.ViewportSize();
         tuning.directionRangeWorld = weapon.projectileRange>0 ? weapon.projectileRange : 1000.0f;
 #endif

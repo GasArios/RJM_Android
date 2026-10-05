@@ -30,13 +30,27 @@ void TouchControls::SetScreenSize(float width,float height) {
     Process({TouchPhase::Cancel,-1,{}});
     screenSize_={width,height};
 }
+void TouchControls::SetAimMode(AimMode mode) {
+    if(mode==aimMode_) return;
+    aimMode_=mode;
+    ChangeMenu(menu_); // Mode changes cannot turn a menu finger into a shot.
+}
+void TouchControls::SamplePad(Vector2 point) {
+    const bool wasActive=padActive_;
+    aimPosition_=lastAimSample_=point;
+    padActive_=AimPad::Active(screenSize_,point);
+    if(fireBlocked_) return;
+    aimChanged_=true;
+    if(!padActive_) firePressed_=false;
+    else if(!wasActive) firePressed_=true;
+}
 void TouchControls::BeginFrame() {
     firePressed_ = aimChanged_ = false;
     pinchScale_=1;
     selectedSlot_ = -1; action_ = Action::None;
 }
 void TouchControls::ChangeMenu(Menu menu) {
-    menu_ = menu; fireId_ = braceId_ = -1;
+    menu_ = menu; fireId_ = braceId_ = -1; padActive_=false;
     firePressed_ = aimChanged_ = false;
     fireBlocked_ = false; pinching_=false; pinchScale_=1;
     for(auto& p:pointers_) p.zoomCandidate=false;
@@ -50,7 +64,8 @@ void TouchControls::BlockFireUntilRelease() { fireBlocked_ = true; firePressed_ 
 bool TouchControls::IsUiPoint(Vector2 p) const {
     // Use this instance's width, including in isolated input tests.
     auto centered=[&](Rectangle r){r.x+=(screenSize_.x-1280)*0.5f; return r;};
-    if(menu_==Menu::Gameplay) return Contains(InfoButton,p)||Contains(WeaponsButton,p)||Contains(BraceButton,p);
+    if(menu_==Menu::Gameplay) return Contains(InfoButton,p)||Contains(WeaponsButton,p)||Contains(BraceButton,p)||
+        Contains(LeftReloadButton,p)||(IsPadMode(aimMode_)&&AimPad::Contains(screenSize_,p));
     if(Contains(centered({990,134,104,64}),p)) return true;
     if(menu_==Menu::Pause) for(int row=0;row<7;++row)
         if(Contains(centered({360,210+row*59.0f,560,50}),p)) return true;
@@ -65,7 +80,7 @@ void TouchControls::UpdatePinch() {
     const float distance=std::hypot(first->position.x-second->position.x,first->position.y-second->position.y);
     if(!pinching_) {
         pinching_=true; gateUntilRelease_=true;
-        fireId_=-1; firePressed_=aimChanged_=false; fireBlocked_=true;
+        fireId_=-1; padActive_=false; firePressed_=aimChanged_=false; fireBlocked_=true;
         pinchFirst_=first->id; pinchSecond_=second->id; pinchDistance_=distance;
         return;
     }
@@ -78,14 +93,14 @@ void TouchControls::UpdatePinch() {
 }
 void TouchControls::Process(const TouchEvent& e) {
     if(e.phase==TouchPhase::Cancel) {
-        pointers_={}; fireId_=braceId_=-1;
+        pointers_={}; fireId_=braceId_=-1; padActive_=false;
         firePressed_=aimChanged_=false; gateUntilRelease_=fireBlocked_=pinching_=false;
         pinchScale_=1; pinchFirst_=pinchSecond_=-1;
         return;
     }
     if(e.phase==TouchPhase::Up) {
         for(auto& p:pointers_) if(p.id==e.id) p=Pointer{};
-        if(fireId_==e.id) {fireId_=-1;fireBlocked_=false;}
+        if(fireId_==e.id) {fireId_=-1;fireBlocked_=false;padActive_=false;}
         if(braceId_==e.id) braceId_=-1;
         if(std::all_of(pointers_.begin(),pointers_.end(),[](const Pointer& p){return p.id<0;})) {
             gateUntilRelease_=fireBlocked_=pinching_=false;
@@ -95,8 +110,10 @@ void TouchControls::Process(const TouchEvent& e) {
     if(e.phase==TouchPhase::Move) {
         for(auto& p:pointers_) if(p.id==e.id) { p.position=e.position; if(!e.inside) p.zoomCandidate=false; }
         if(pinching_) {UpdatePinch();return;}
-        if(fireId_==e.id && !fireBlocked_ && menu_==Menu::Gameplay) {
-            if(!e.inside) {fireBlocked_=true;return;}
+        if(fireId_==e.id && menu_==Menu::Gameplay) {
+            if(!e.inside) {BlockFireUntilRelease();return;}
+            if(IsPadMode(aimMode_)) {SamplePad(e.position);return;}
+            if(fireBlocked_) return;
             const float dx=e.position.x-lastAimSample_.x,dy=e.position.y-lastAimSample_.y;
             if(dx*dx+dy*dy>=MobileTuning::DragThreshold*MobileTuning::DragThreshold) {
                 aimPosition_=lastAimSample_=e.position;aimChanged_=true;
@@ -118,9 +135,13 @@ void TouchControls::Process(const TouchEvent& e) {
         if(Contains(InfoButton,e.position)) {ChangeMenu(Menu::Help);return;}
         if(Contains(WeaponsButton,e.position)) {ChangeMenu(Menu::Weapons);return;}
         if(Contains(BraceButton,e.position)) {if(braceId_<0) braceId_=e.id;return;}
+        if(Contains(LeftReloadButton,e.position)) {action_=Action::Reload;BlockFireUntilRelease();return;}
+        // World taps outside the pad are zoom candidates only in modes 3/4.
+        if(IsPadMode(aimMode_) && !AimPad::Contains(screenSize_,e.position)) return;
         if(fireId_<0) {
-            fireId_=e.id;firePressed_=aimChanged_=true;fireBlocked_=false;
-            aimPosition_=lastAimSample_=e.position;
+            fireId_=e.id;fireBlocked_=false;
+            if(IsPadMode(aimMode_)) {padActive_=false;SamplePad(e.position);}
+            else {firePressed_=aimChanged_=true;aimPosition_=lastAimSample_=e.position;}
         }
         return;
     }

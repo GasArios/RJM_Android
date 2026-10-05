@@ -137,6 +137,70 @@ int main() {
     Require(!request.reload&&!request.switched&&!request.fire,"unready loaded weapon treated as empty set");
     std::cout<<"PASS original auto-switch order, readiness, full/semi transition and all-empty input\n";
 
+    for(auto mode:{AimMode::Joystick,AimMode::TouchCircle}) {
+        TouchControls pad;pad.SetScreenSize(1560,720);pad.SetAimMode(mode);pad.BeginFrame();
+        const auto center=AimPad::Center(pad.ScreenSize());
+        const Vector2 right{center.x+60,center.y},outside{center.x-250,center.y};
+        Down(pad,0,{600,300});Require(!pad.FirePressed()&&!pad.FireHeld(),"world tap fires in pad mode");
+        Move(pad,0,right);Require(!pad.PadTouched(),"world pointer gains pad ownership");Up(pad,0);
+        Down(pad,0,center);Require(pad.PadTouched()&&!pad.FirePressed()&&!pad.FireHeld(),"pad neutral fires");
+        pad.BeginFrame();Move(pad,0,right);Require(pad.FirePressed()&&pad.FireHeld(),"pad drag fails to engage");
+        pad.BeginFrame();Require(!pad.FirePressed()&&pad.FireHeld(),"pad hold not continuous");
+        Down(pad,1,{70,420});Require(pad.Bracing()&&pad.FireHeld()&&!pad.Pinching(),"pad+brace pinches");Up(pad,1);
+        Down(pad,1,{center.x,center.y+60});Require(!pad.Pinching()&&Near(pad.AimPosition().x,right.x),"second pad pointer steals aim");Up(pad,1);
+        Move(pad,0,outside);Require(pad.FireHeld(),"leaving outer pad cancels aim");
+        Require(Near(AimPad::Distance(pad.ScreenSize(),pad.PadKnob()),MobileTuning::PadRadius-MobileTuning::PadKnobRadius),"knob not clamped");
+        MobileAim first,second;first.UpdateScreen({20,30},outside,pad.ScreenSize(),mode);
+        second.UpdateScreen({1500,700},outside,pad.ScreenSize(),mode);
+        Require(first.Valid()&&Near(first.Direction().x,-1)&&Near(first.Direction().y,0)&&
+                Near(first.Direction().x,second.Direction().x),"pad aim depends on player position");
+        first.UpdateScreen({20,30},{center.x+30,center.y},pad.ScreenSize(),mode);
+        second.UpdateScreen({20,30},{center.x+250,center.y},pad.ScreenSize(),mode);
+        Require(Near(first.Direction().x,second.Direction().x)&&Near(std::hypot(first.Direction().x,first.Direction().y),1),"drag distance changes force");
+        Move(pad,0,{70,510});Require(pad.RequestedAction()==Action::None&&pad.FireHeld(),"pad move clicks reload UI");
+        Move(pad,0,center);Require(!pad.FireHeld()&&!pad.FirePressed(),"center does not stop");
+        Move(pad,0,right);Require(pad.FirePressed()&&pad.FireHeld(),"neutral reentry fails");
+        pad.BeginFrame();Down(pad,1,{70,510});Require(pad.RequestedAction()==Action::Reload&&!pad.FireHeld()&&!pad.FirePressed(),"left reload fails to block hold");
+        Up(pad,1);Move(pad,0,center);Move(pad,0,right);Require(!pad.FireHeld(),"reload rearms before release");
+        Up(pad,0);Require(Near(pad.PadKnob().x,center.x)&&Near(pad.PadKnob().y,center.y),"released knob not centered");
+        pad.BeginFrame();Down(pad,0,right);Up(pad,0);Require(pad.FirePressed()&&!pad.FireHeld(),"short circle tap lost");
+        pad.BeginFrame();Require(!pad.FirePressed(),"short circle tap repeats");
+        Down(pad,0,right);pad.Back();Require(!pad.FireHeld()&&!pad.PadTouched(),"Back retains pad");
+        Up(pad,0);pad.Back();pad.BeginFrame();Down(pad,0,right);
+        pad.SetAimMode(mode==AimMode::Joystick?AimMode::TouchCircle:AimMode::Joystick);
+        Move(pad,0,right);Require(!pad.FireHeld(),"mode change inherits hold");Up(pad,0);
+        pad.BeginFrame();Down(pad,0,right);pad.Process({TouchPhase::Move,0,right,false});
+        Move(pad,0,right);Require(!pad.FireHeld(),"viewport exit rearms without release");Cancel(pad);
+        pad.BeginFrame();Down(pad,0,{400,300});Down(pad,1,{800,300});Move(pad,0,{300,300});
+        Require(pad.Pinching()&&pad.PinchScale()>1&&!pad.FireHeld(),"pad mode world pinch broken");
+        Up(pad,1);Move(pad,0,right);Require(!pad.FireHeld(),"remaining pinch finger becomes pad");Cancel(pad);
+        pad.BeginFrame();Down(pad,0,right);pad.SetScreenSize(1600,720);Require(!pad.PadTouched()&&!pad.FireHeld(),"resize retains pad");
+    }
+    Require(NextAimMode(AimMode::TouchCircle)==AimMode::Character,"four-mode cycle does not wrap");
+    std::cout<<"PASS both pads: neutral/hold/release, clamping, UI ownership, pinch, resize and reload rearm\n";
+
+    auto continuousDef=def;continuousDef.magazineSize=2;continuousDef.fireCooldownSeconds=0.3f;
+    continuousDef.defaultFireMode=FireControlMode::SemiAuto;
+    WeaponInventory continuous;continuous.Equip(0,Gun(continuousDef));continuous.Equip(1,Gun(continuousDef));
+    request=ResolveWeaponFire(continuous,false,true,true);Require(request.fire,"pad cannot hold semi-auto");
+    Require(request.gun->TryFire(Vector2{1,0}).fired,"first pad shot fails");
+    Require(!request.gun->TryFire(Vector2{1,0}).fired,"pad bypasses cooldown");
+    continuous.Update(0.29f,true);Require(!request.gun->TryFire(Vector2{1,0}).fired,"pad fires early");
+    continuous.Update(0.02f,true);Require(request.gun->TryFire(Vector2{1,0}).fired,"pad cooldown never expires");
+    request=ResolveWeaponFire(continuous,false,true,true);
+    Require(request.switched&&request.fire&&continuous.CurrentSlot()==1,"pad loses hold on automatic semi switch");
+    request.gun->TryFire(Vector2{1,0});continuous.Update(0.31f,true);request.gun->TryFire(Vector2{1,0});
+    request=ResolveWeaponFire(continuous,false,true,true);Require(request.reload&&!request.fire,"empty pad hold fails to queue set");
+    TouchControls blocked;blocked.SetAimMode(AimMode::Joystick);blocked.BeginFrame();
+    auto bcenter=AimPad::Center(blocked.ScreenSize());Down(blocked,0,{bcenter.x+60,bcenter.y});
+    blocked.BlockFireUntilRelease();ReloadQueue queued;queued.Request();queued.Update(continuous,false);
+    Require(queued.Pending(),"pad reload happens airborne");queued.Update(continuous,true);continuous.Update(2,true);
+    request=ResolveWeaponFire(continuous,blocked.FirePressed(),blocked.FireHeld(),true);
+    Require(!request.fire&&!request.reload&&continuous.At(0)->AmmoInMagazine()==2,"pad reservation fires after reload");
+    Up(blocked,0);blocked.BeginFrame();Down(blocked,0,{bcenter.x+60,bcenter.y});
+    Require(ResolveWeaponFire(continuous,blocked.FirePressed(),blocked.FireHeld(),true).fire,"pad release fails to rearm after reload");
+    std::cout<<"PASS pad continuous semi-auto cooldown, automatic switching and grounded reload release gate\n";
+
     AimAssistResolver resolver;AimAssistTuning tuning;tuning.directionOnly=true;tuning.maxCorrectionDegrees=6;
     tuning.useAssistedTargetForRecoil=false;tuning.viewportSize={1560,720};
     AimAssistCandidate candidate;candidate.worldPosition={500,20};candidate.screenPosition={1300,300};

@@ -3,7 +3,7 @@ set -euo pipefail
 set -x
 mkdir -p smoke-output
 trap 'adb logcat -d > smoke-output/logcat.txt; adb exec-out screencap -p > smoke-output/final.png' EXIT
-adb install -r dist/RJM-Android-0.1.1.apk
+adb install -r dist/RJM-Android-0.1.2.apk
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
 adb shell settings put secure immersive_mode_confirmations confirmed
@@ -66,6 +66,9 @@ adb logcat -c
 adb shell am instrument -w com.gasarios.rjm.test/com.gasarios.rjm.ControlSmoke | tee smoke-output/instrumentation.txt
 grep -q 'PASS native two-finger pinch' smoke-output/instrumentation.txt
 adb exec-out run-as com.gasarios.rjm cat files/control-smoke.png > smoke-output/pinch-settings.png
+for name in pad-3-held pad-4-held pad-3-released pad-4-released pad-reload-blocked four-mode-settings; do
+  adb exec-out run-as com.gasarios.rjm cat "files/$name.png" > "smoke-output/$name.png"
+done
 adb exec-out run-as com.gasarios.rjm cat files/checkpoint-v1.txt > smoke-output/checkpoint.txt
 adb shell am force-stop com.gasarios.rjm
 adb logcat -c
