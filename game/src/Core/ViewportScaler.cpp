@@ -5,6 +5,7 @@
 #include "RecoilJumpMan/Core/ViewportScaler.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -60,6 +61,15 @@ namespace rjm
             viewportWidth,
             viewportHeight
         };
+    }
+
+    void ViewportScaler::UpdateFullWidth(int windowWidth, int windowHeight)
+    {
+        const int safeWidth = std::max(1, windowWidth);
+        const int safeHeight = std::max(1, windowHeight);
+        virtualWidth_ = std::max(1, static_cast<int>(std::round(
+            static_cast<double>(virtualHeight_) * safeWidth / safeHeight)));
+        Update(safeWidth, safeHeight);
     }
 
     Vector2 ViewportScaler::WindowToVirtual(Vector2 windowPosition) const

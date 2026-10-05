@@ -59,7 +59,16 @@ namespace rjm
         while (!WindowShouldClose())
         {
             // 실제 창 크기는 플레이어가 매 프레임 바꿀 수 있으므로 계속 다시 읽습니다.
+#ifdef __ANDROID__
+            viewport.UpdateFullWidth(GetScreenWidth(), GetScreenHeight());
+            if(gameTarget.texture.width != viewport.VirtualWidth() || gameTarget.texture.height != viewport.VirtualHeight()) {
+                UnloadRenderTexture(gameTarget);
+                gameTarget=LoadRenderTexture(viewport.VirtualWidth(),viewport.VirtualHeight());
+                SetTextureFilter(gameTarget.texture,TEXTURE_FILTER_POINT);
+            }
+#else
             viewport.Update(GetScreenWidth(), GetScreenHeight());
+#endif
 
             // GetFrameTime은 지난 프레임에서 이번 프레임까지 걸린 시간을 초 단위로 반환합니다.
             // 이 값을 사용하면 컴퓨터 성능이 달라도 이동 속도를 일정하게 만들 수 있습니다.

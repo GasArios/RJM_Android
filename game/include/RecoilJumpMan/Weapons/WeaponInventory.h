@@ -96,7 +96,7 @@ namespace rjm
         // - "정말 모든 총이 비었는가"를 판단할 때 사용합니다.
         bool HasAnyLoadedWeapon() const;
 
-    private:
+        // Read-only set state for the mobile queue and UI.
         // IsAnyReloading:
         // - 장착 총 중 하나라도 세트 재장전 상태라면 true입니다.
         bool IsAnyReloading() const;
@@ -109,6 +109,7 @@ namespace rjm
         // - 장착 총 전체 reloadSeconds 평균을 기반으로 세트 재장전 시간을 계산합니다.
         float CalculateSetReloadSeconds() const;
 
+    private:
         // StartSetReload:
         // - 장착 총 전체를 같은 재장전 타이머로 묶습니다.
         void StartSetReload(float reloadSeconds);

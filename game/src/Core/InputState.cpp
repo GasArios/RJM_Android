@@ -16,6 +16,7 @@ namespace rjm
     {
 #ifdef __ANDROID__
         auto& controls = mobile::Controls();
+        controls.SetScreenSize(static_cast<float>(viewport.VirtualWidth()), static_cast<float>(viewport.VirtualHeight()));
         controls.BeginFrame();
         auto events = mobile::DrainTouchEvents();
         if (mobile::ConsumePause()) {

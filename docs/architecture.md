@@ -1,46 +1,43 @@
-# 첫 Android 프로토타입 구조
+# Android 조작 패치 구조 (0.1.1)
 
-원본은 [GasArios/myFirstGame](https://github.com/GasArios/myFirstGame)의 `f0ba72fa2714ef30d17c9971fcc9a3d93abbbe1b` 커밋이다. 원본 C++ 헤더·소스 129개를 `game/`으로 옮겼다. 반동 물리, 높이에 따른 반동 감쇠, 타일 충돌, 적·투사체, 착지 복구와 LDtk 파서는 재사용한다.
+원본 PC 코드: `GasArios/myFirstGame`의 `f0ba72fa2714ef30d17c9971fcc9a3d93abbbe1b`. C++/raylib 반동·중력·높이 감쇠·타일 충돌·적·투사체·LDtk 파서를 재사용합니다.
 
 ## 한 프레임의 흐름
 
-1. `RjmActivity.java`: 시스템 뒤로가기와 앱 중단을 C++에 알린다.
-2. `Mobile/Platform.cpp`: raylib Android NDK 입력 큐에서 DOWN/MOVE/UP/CANCEL과 포인터 ID를 받아 저장한다. 짧은 탭도 보존한다.
-3. `Core/InputState.cpp`: 실제 화면 좌표를 1280×720 가상 좌표로 바꿔 `Mobile/TouchControls.cpp`에 전달한다.
-4. `TouchControls`: 터치 시작점에서 UI/사격/버티기 소유권을 정한다. 메뉴를 닫은 손가락은 떼기 전까지 사격으로 바뀌지 않는다.
-5. `Scene/GameplayScene.cpp`: 총 발사와 원본 물리·전투를 진행한다. `Mobile/GameplayMobile.cpp`가 메뉴·시간 배율·체크포인트를 연결한다.
-6. `Mobile/MobileAim.h`: 누른 순간과 의도적인 드래그 때만 월드 방향을 저장한다. 플레이어·카메라 이동만으로 반동 방향이 바뀌지 않는다.
-7. `Mobile/ReloadQueue.h`: 예약한 총 슬롯을 유지한다. 착지 후 해당 총만 재장전하며 자동 무기 교체는 하지 않는다.
+1. `RjmActivity.java` / `Mobile/Platform.cpp`: Android 뒤로가기·앱 중단과 NDK DOWN/MOVE/UP/CANCEL 및 포인터 ID를 수집합니다.
+2. `Core/Application.cpp` / `ViewportScaler`: Android는 높이 720 기준으로 실제 화면 비율에 맞춰 가상 너비와 렌더 텍스처를 조정합니다. PC는 기존 1280×720 비율을 유지합니다.
+3. `Core/InputState.cpp`: 화면 좌표를 가상 좌표로 바꾸고 `TouchControls`로 전달합니다. 화면 크기 변경 시 기존 터치를 취소합니다.
+4. `TouchControls`: UI/버티기/게임 영역의 포인터 소유권을 정합니다. 게임 영역의 두 포인터는 핀치이며, 사격을 막고 모두 뗄 때까지 차단합니다. 메뉴 버튼 터치·BRACE는 핀치에 포함하지 않습니다. 무기 창과 플레이 중 핀치는 전체 세계 시간을 8%로 진행합니다.
+5. `Mobile/GameplayMobile.cpp`: 배율과 카메라 크기, 설정·메뉴·체크포인트를 연결합니다. 일시정지 중에도 핀치 배율을 적용합니다.
+6. `MobileAim`: 누른 순간과 의도적인 드래그 때 화면 방향을 월드 방향으로 변환합니다. 캐릭터 기준 / 실제 게임 영역 중앙 기준을 지원합니다. 화면 Y와 월드 Y 방향을 반전하며 줌·카메라·플레이어 이동만으로 홀드 방향이 바뀌지 않습니다.
+7. `WeaponInput`: 원본 `SelectNextReadyWeapon`을 호출하고 교체된 총의 발사 모드로 입력을 다시 해석합니다. 반자동은 새 탭, 연사는 홀드 또는 짧은 새 탭으로 발사합니다.
+8. `ReloadQueue`: 전체 세트에 대한 비만료 예약입니다. 착지 후 원본 `WeaponInventory::TryReloadAll`을 호출합니다. 기존 재장전의 타이머를 덮어쓰지 않습니다. 지상에서만 진행되는 총 갱신은 원본 그대로입니다.
+9. `GameplayScene`: 실제 발사·반동·물리·전투를 진행합니다. 조준 보조는 원본 반동 벡터와 분리합니다.
 
-## 주요 파일과 수치
+## 조절할 수 있는 수치
 
-| 목적 | 파일 |
+| 목적 | 파일 / 기준 |
 |---|---|
-| 총 수치 | `game/src/Data/BuiltInData.cpp` |
-| 원본 반동·중력·버티기 수치 | `game/include/RecoilJumpMan/Physics/RecoilMovementTuning.h` |
-| 터치 영역·시간 배율 | `game/include/RecoilJumpMan/Mobile/TouchControls.h` |
-| 드래그 10 가상 픽셀 문턱 | `game/src/Mobile/TouchControls.cpp` |
-| 탄환 보정·반동 분리 | `game/src/Scene/GameplayScene.cpp` |
-| APK 빌드·설치 검증 | `.github/workflows/android.yml`, `tests/android-smoke.sh` |
+| 기본 모바일 배율 1.10 | `Mobile/MobileTuning.h` |
+| 작은 조준 영역 12·드래그 문턱 10·핀치 최소 간격 24 | 위 파일, 높이 720 기준 화면 단위. 줌에 영향받지 않음 |
+| 줌 범위 0.65~1.80 | `Camera/CameraTuning.h` |
+| 총 수치 | `Data/BuiltInData.cpp` |
+| 전체 재장전 | 원본 `Weapons/WeaponInventory.cpp`: 모든 장착 총 `reloadSeconds` 평균을 0.20~2.00초로 제한 |
+| 반동·중력·버티기 | `Physics/RecoilMovementTuning.h` |
+| 버튼 위치·시간·멀티터치 | `Mobile/TouchControls.h`, `.cpp` |
 
-무기 창에서 모든 게임 시간은 8%로 진행한다. 입력·UI는 실시간이다. 일시정지·도움말에서는 게임 로직을 실행하지 않는다. 조준은 캐릭터 중심 8 월드 단위 이내면 사격하지 않는다. 탄환 보정은 원본 포인터 주변 후보 방식에 최대 6도 제한을 두며, 반동 방향은 보정하지 않는다. 자동 락온 입력은 없다.
+줌은 플레이어의 화면상 위치를 유지하도록 카메라 목표를 보정하지만 맵 경계를 우선합니다. UI는 카메라 확대에 영향을 받지 않으며 패널과 히트박스는 실제 너비의 중앙에 맞춥니다. 캐릭터 기준의 탄환 보정은 기존 포인터 주변 방식입니다. 중앙 기준은 포인터가 적 위치를 뜻하지 않으므로 화면 내 시야선이 열린 후보를 같은 최대 6도 안에서 보정합니다. 지속 추적·락온은 사용하지 않습니다.
 
-빈 탄창 새 탭은 재장전 예약이다. 시간이 지나도 취소되지 않고 총을 바꿔도 처음 예약한 총에 남는다. 공중에서는 재장전 시간이 진행되지 않는다. 예약한 홀드는 떼기 전까지 추가 발사를 하지 않는다. 무기 창에서 선택 총의 부분 재장전도 예약할 수 있다.
+즉시 발사와 첫 핀치 터치는 완전히 구분할 수 없습니다. 두 번째 손가락이 오기 전 이미 처리된 첫 발은 취소하지 않습니다. 같은 입력 프레임에 두 손가락이 모이면 첫 발도 차단합니다. 일시정지 핀치는 사격 없이 가능합니다.
 
-## 체크포인트와 에셋
+## 저장·에셋·검증
 
-`checkpoint-v1.txt`를 앱 내부에 임시 파일 작성 후 원자적으로 교체한다. 3초마다, 일시정지 진입·저장 버튼·설정 변경 때 저장한다. 마지막 확인된 안전 위치·선택 총·탄환 보정 및 흔들림 설정을 복원한다. 앱을 새로 시작하면 체력·탄창·적은 초기화한다. 정식 RPG 세이브는 아니다.
+앱 내부 `checkpoint-v1.txt`의 헤더를 `RJM_CHECKPOINT_2`로 올렸습니다. v1을 읽고 v2로 저장합니다. 안전 위치·선택 총·탄환 보정·흔들림·조준 모드·배율을 임시 파일 작성 후 교체합니다. 3초마다, 일시정지·설정 변경·핀치 종료 때 저장합니다. 체력·탄창·적은 새 기동 시 초기화합니다.
 
-원본 저장소에 실제 LDtk 맵·도트 이미지가 없어서 원본 코드의 디버그 월드를 사용한다. `game/assets/maps/starter_field.ldtk`를 추가하면 로더가 Android 에셋 API로 읽는다. 아직 도트 타일셋 렌더러는 없다. 스킬·아이템·배낭·보스·스토리·자이로는 이번 범위에 없다. 기능이 연결된 도움말·버티기·총 선택 버튼만 표시한다.
+원본에 실제 LDtk 맵·도트 이미지가 없어 디버그 월드를 사용합니다. `game/assets/maps/starter_field.ldtk`를 넣으면 Android 에셋 API로 읽습니다. 스킬·아이템·배낭·보스·스토리·자이로는 이번 범위에 없습니다.
 
-## 고정 빌드와 서명
+`tests/run-core-tests.sh <raylib 헤더 폴더>`는 순수 행동·좌표·카메라·총기 검증입니다. `tests/android-smoke.sh`는 설치·발사·선택·뒤로가기·앱 복귀, 별도 `ControlSmoke` 테스트 APK의 실제 다중 포인터 주입, 저장 후 프로세스 재기동을 확인합니다. 테스트 입력 주입 코드는 게임 APK에 포함하지 않습니다.
 
-raylib 5.5 커밋 `c1ab645ca298a2801097931d1079b10ff7eb9df8`, AGP 8.9.2, Gradle 8.11.1, JDK 17, SDK 35, NDK 27.2.12479018, CMake 3.22.1을 사용한다. raylib Android 입력 콜백에 작은 CMake 훅을 넣으며, 버전과 맞지 않으면 빌드를 실패시킨다.
+raylib 5.5 고정 커밋 `c1ab645ca298a2801097931d1079b10ff7eb9df8`, AGP 8.9.2, Gradle 8.11.1, JDK 17, SDK 35, NDK 27.2.12479018, CMake 3.22.1을 사용합니다. GitHub Actions에서 `gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace`로 빌드합니다. Galaxy용 ARM64와 에뮬레이터용 x86_64를 포함합니다.
 
-GitHub Actions에서 `gradle --no-daemon :app:assembleDebug --stacktrace`를 실행한다. 출력은 `app/build/outputs/apk/debug/app-debug.apk`이다. APK에 Galaxy용 `arm64-v8a`와 에뮬레이터용 `x86_64`를 넣는다.
-
-개인 서명 키는 저장소에 올리지 않는다. Gradle이 임시 빌드 환경에서 테스트 키를 만든다. 다른 빌드의 키가 달라지면 기존 테스트 앱을 삭제한 후 재설치해야 하며 앱 내부 체크포인트가 지워진다. 후속 개발에서는 GitHub Secrets에 보관한 지속 서명 키를 별도로 설정한다. 앱은 네트워크·저장소 접근 권한을 요청하지 않는다.
-
-## 검증의 경계
-
-자동 테스트는 터치 소유권·짧은 탭·메뉴 입력 차단·재장전 예약·반동 분리·타일 착지와 Android 설치·기동을 검사한다. 실제 S24 Ultra 손가락 조작감, 시스템 뒤로가기 제스처, 장시간 발열·배터리·프레임 안정성은 실기기에서 확인해야 한다.
+개인 키는 공개하지 않습니다. 임시 빌드 환경의 테스트 서명 키가 이전 APK와 다르면 삭제·재설치가 필요하며 앱 저장 데이터가 지워집니다. 추후 지속 서명 키는 GitHub Secrets에 보관합니다. 에뮬레이터 결과는 실제 Galaxy 손가락 감각·센서·발열·프레임 검증을 대체하지 않습니다.

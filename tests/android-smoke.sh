@@ -3,7 +3,7 @@ set -euo pipefail
 set -x
 mkdir -p smoke-output
 trap 'adb logcat -d > smoke-output/logcat.txt; adb exec-out screencap -p > smoke-output/final.png' EXIT
-adb install -r dist/RJM-Android-0.1.0.apk
+adb install -r dist/RJM-Android-0.1.1.apk
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
 adb shell settings put secure immersive_mode_confirmations confirmed
@@ -18,13 +18,13 @@ adb logcat -d > smoke-output/start.txt
 grep -q 'RJM: ready' smoke-output/start.txt
 ! grep -E 'Fatal signal|FATAL EXCEPTION' smoke-output/start.txt
 adb exec-out screencap -p > smoke-output/gameplay.png
-# Derive letterboxed coordinates from the actual landscape screenshot.
+# Derive the full-width viewport and centered UI from the screenshot.
 python3 - <<'PY' > smoke-output/points.sh
 import struct
 data=open('smoke-output/gameplay.png','rb').read(); w,h=struct.unpack('>II',data[16:24])
 assert w>h, f'Expected landscape, got {w}x{h}'
-s=min(w/1280,h/720); ox=(w-1280*s)/2; oy=(h-720*s)/2
-for name,x,y in [('FIRE',640,680),('GUNS',70,590),('SHOTGUN',620,360),('RESUME',640,256)]:
+s=h/720; shift=(w/s-1280)/2; ox=oy=0
+for name,x,y in [('FIRE',640,680),('GUNS',70,590),('SHOTGUN',620+shift,360),('RESUME',640+shift,235)]:
  print(f'{name}_X={round(ox+x*s)}; {name}_Y={round(oy+y*s)}')
 PY
 source smoke-output/points.sh
@@ -60,3 +60,24 @@ grep -q 'RJM: menu=2' smoke-output/end.txt
 ! grep -E 'Fatal signal|FATAL EXCEPTION' smoke-output/end.txt
 adb shell pidof com.gasarios.rjm
 echo 'PASS APK install, native launch, touch shot, weapon UI, Back and app resume'
+
+adb install -r test-dist/app-debug-androidTest.apk
+adb logcat -c
+adb shell am instrument -w com.gasarios.rjm.test/com.gasarios.rjm.ControlSmoke | tee smoke-output/instrumentation.txt
+grep -q 'PASS native two-finger pinch' smoke-output/instrumentation.txt
+adb exec-out run-as com.gasarios.rjm cat files/control-smoke.png > smoke-output/pinch-settings.png
+adb exec-out run-as com.gasarios.rjm cat files/checkpoint-v1.txt > smoke-output/checkpoint.txt
+adb shell am force-stop com.gasarios.rjm
+adb logcat -c
+adb shell am start -W -n com.gasarios.rjm/.RjmActivity
+sleep 3
+adb logcat -d > smoke-output/restored.txt
+python3 - <<'PY'
+import re
+fields=open('smoke-output/checkpoint.txt').read().split()
+logs=open('smoke-output/restored.txt').read()
+match=re.search(r'RJM: restored aim=(\d+) zoom=([\d.]+)',logs)
+assert match and int(match[1])==int(fields[6]) and abs(float(match[2])-float(fields[7]))<0.002, 'Aim/zoom not restored'
+assert 'Fatal signal' not in logs and 'FATAL EXCEPTION' not in logs
+print('PASS process restart restores saved aim mode and zoom')
+PY

@@ -68,6 +68,10 @@ namespace rjm
         // Zoom:
         // - 현재 줌 배율을 반환합니다.
         float Zoom() const;
+        Vector2 ViewportSize() const { return viewportSize_; }
+        void SetViewportSize(float width,float height);
+        // Preserve the anchor's screen position unless map bounds prevent it.
+        void SetZoomAnchored(float zoom,Vector2 worldAnchor);
 
     private:
         // ApplyZoomInput:
@@ -124,6 +128,7 @@ namespace rjm
 
         // 카메라 튜닝값 묶음입니다.
         CameraTuning tuning_;
+        Vector2 viewportSize_{1280,720};
     };
 }
 

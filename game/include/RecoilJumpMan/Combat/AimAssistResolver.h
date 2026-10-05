@@ -43,6 +43,11 @@ namespace rjm
         // - true이면 후보가 가진 예측 좌표를 탄환 목표로 사용할 수 있습니다.
         // - 좌클릭 일반 보정에서는 약하게 적용해 플레이어의 예측 사격 의도를 덜 방해합니다.
         bool usePredictedTarget = false;
+        // Direction input has no on-screen target point. Only assist visible,
+        // unobstructed candidates inside the SAME small angular correction.
+        bool directionOnly = false;
+        Vector2 viewportSize{1280,720};
+        float directionRangeWorld = 1000;
     };
 
     struct AimAssistCandidate

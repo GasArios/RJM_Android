@@ -21,6 +21,8 @@ namespace rjm
         // - 현재 실제 창 크기를 받아, 창 안에 들어갈 16:9 게임 화면 영역을 다시 계산합니다.
         // - 창 크기는 GetScreenWidth()/GetScreenHeight()로 매 프레임 달라질 수 있습니다.
         void Update(int windowWidth, int windowHeight);
+        // Android uses the complete aspect ratio at a constant reference height.
+        void UpdateFullWidth(int windowWidth, int windowHeight);
 
         // WindowToVirtual:
         // - 실제 창 좌표계를 가상 화면 좌표계로 변환합니다.

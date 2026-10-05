@@ -15,6 +15,7 @@ namespace rjm
     class DataRegistry;
     class InputState;
     class Time;
+    class ViewportScaler;
 
     // struct:
     // - class와 거의 같지만, 기본 접근 제한이 public입니다.
@@ -24,6 +25,7 @@ namespace rjm
         // Time 객체의 주소입니다.
         // nullptr는 아직 아무것도 가리키지 않는 포인터 값입니다.
         Time* time = nullptr;
+        const ViewportScaler* viewport = nullptr;
 
         // InputState 객체의 주소입니다.
         InputState* input = nullptr;

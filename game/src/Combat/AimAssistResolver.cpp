@@ -87,12 +87,17 @@ namespace rjm
                 mouseScreenPosition,
                 tuning.usePredictedTarget);
             const float distanceSquared = math::DistanceSquared(mouseScreenPosition, scoringScreenPosition);
-            if (distanceSquared > effectiveRadius * effectiveRadius)
+            if (!tuning.directionOnly && distanceSquared > effectiveRadius * effectiveRadius)
             {
                 continue;
             }
 
             const Vector2 projectileTarget = ResolveProjectileTarget(candidate, tuning.usePredictedTarget);
+            if(tuning.directionOnly && (
+                candidate.screenPosition.x<0 || candidate.screenPosition.y<0 ||
+                candidate.screenPosition.x>tuning.viewportSize.x || candidate.screenPosition.y>tuning.viewportSize.y ||
+                !ResolveProjectileLineOfSight(candidate,tuning.usePredictedTarget) ||
+                math::DistanceSquared(playerWorldPosition,projectileTarget)>tuning.directionRangeWorld*tuning.directionRangeWorld)) continue;
             const float correctionDegrees = math::DirectionDifferenceDegrees(
                 playerWorldPosition,
                 rawWorldTarget,
@@ -113,7 +118,9 @@ namespace rjm
             // score:
             // - 가까운 후보를 우선하되, priority가 높은 후보는 조금 더 쉽게 선택되게 합니다.
             // - 보정 각도도 약간 반영해 갑작스러운 방향 변경보다 자연스러운 보정을 선호합니다.
-            const float score = (normalizedDistance + normalizedCorrection * 0.35f) / priority;
+            const float score = tuning.directionOnly
+                ? normalizedCorrection / priority
+                : (normalizedDistance + normalizedCorrection * 0.35f) / priority;
             if (!bestCandidate || score < bestScore)
             {
                 bestCandidate = &candidate;

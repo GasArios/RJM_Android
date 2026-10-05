@@ -3,6 +3,7 @@
 // - 현재는 시작 위치 설정, 시작 장비 장착, 플레이어/레벨 업데이트와 그리기를 담당합니다.
 
 #include "RecoilJumpMan/Scene/GameplayScene.h"
+#include "RecoilJumpMan/Mobile/WeaponInput.h"
 
 #include "RecoilJumpMan/Combat/ProjectileHitPayload.h"
 #include "RecoilJumpMan/Core/Config.h"
@@ -176,6 +177,7 @@ namespace rjm
             }
         }
 #ifdef __ANDROID__
+        camera_.SetZoomAnchored(mobile::MobileTuning::DefaultZoom,player_.Position());
         LoadMobileCheckpoint();
         camera_.SnapTo(player_.Position());
         TraceLog(LOG_INFO, "RJM: ready");
@@ -275,8 +277,7 @@ namespace rjm
             if (context.input->ReloadPressed())
             {
 #ifdef __ANDROID__
-                if (player_.Weapons().Current() && player_.Weapons().Current()->NeedsReload())
-                    mobileReload_.Request(player_.Weapons().CurrentSlot());
+                if (player_.Weapons().CountReloadTargets()>0) mobileReload_.Request();
 #else
                 player_.RequestReload(ReloadIntent::Manual);
 #endif
@@ -302,6 +303,18 @@ namespace rjm
             {
                 // 발사 모드에 따라 이번 프레임에 발사를 원하는지 판단합니다.
                 // SemiAuto는 클릭 순간만, FullAuto는 누르고 있는 동안 쿨타임마다 TryFireAt을 시도합니다.
+#ifdef __ANDROID__
+                const auto request=mobile::ResolveWeaponFire(player_.Weapons(),firePressed,
+                    context.input->FireHeld() && mouseInsideGameViewport);
+                currentGun=request.gun;
+                const bool wantsFire=request.fire;
+                if(request.switched) TraceLog(LOG_INFO,"RJM: auto switch slot=%d",player_.Weapons().CurrentSlot());
+                if(request.reload) {
+                    mobileReload_.Request();
+                    mobile::Controls().BlockFireUntilRelease();
+                    TraceLog(LOG_INFO,"RJM: reload all queued grounded=%d",player_.IsGrounded());
+                }
+#else
                 bool wantsFire = currentGun->FireMode() == FireControlMode::FullAuto
                     ? (context.input->FireHeld() || firePressed) && mouseInsideGameViewport
                     : firePressed;
@@ -312,14 +325,6 @@ namespace rjm
                     // 이렇게 하면 공중에서 한 총의 탄을 다 썼을 때도, 다른 총에 탄이 있으면 즉시 이어서 반동을 만들 수 있습니다.
                     if (currentGun->AmmoInMagazine() <= 0)
                     {
-#ifdef __ANDROID__
-                        if (firePressed) {
-                            if (!currentGun->IsReloading()) mobileReload_.Request(player_.Weapons().CurrentSlot());
-                            mobile::Controls().BlockFireUntilRelease();
-                            TraceLog(LOG_INFO, "RJM: reload queued slot=%d grounded=%d", player_.Weapons().CurrentSlot(), player_.IsGrounded());
-                        }
-                        return;
-#else
                         if (player_.Weapons().SelectNextReadyWeapon())
                         {
                             currentGun = player_.Weapons().Current();
@@ -343,9 +348,10 @@ namespace rjm
 
                             return;
                         }
-#endif
                     }
-
+                }
+#endif
+                if(wantsFire) {
                     if (!currentGun || !wantsFire)
                     {
                         return;
@@ -740,6 +746,9 @@ namespace rjm
 #ifdef __ANDROID__
         tuning.useAssistedTargetForRecoil = false;
         tuning.maxCorrectionDegrees = std::min(tuning.maxCorrectionDegrees, 6.0f);
+        tuning.directionOnly = mobileAimMode_==mobile::AimMode::ScreenCenter;
+        tuning.viewportSize = camera_.ViewportSize();
+        tuning.directionRangeWorld = weapon.projectileRange>0 ? weapon.projectileRange : 1000.0f;
 #endif
         tuning.usePredictedTarget = true;
 
@@ -1149,7 +1158,7 @@ namespace rjm
             return;
         }
 
-        DrawRectangle(0, 0, config::VirtualWidth, config::VirtualHeight, Color{ 0, 0, 0, 135 });
+        DrawRectangle(0, 0, static_cast<int>(camera_.ViewportSize().x), static_cast<int>(camera_.ViewportSize().y), Color{ 0, 0, 0, 135 });
 
         const char* title = "GAME OVER";
         const char* subtitle = "Reconstructing body at respawn anchor";
@@ -1160,14 +1169,14 @@ namespace rjm
 
         DrawText(
             title,
-            (config::VirtualWidth - titleWidth) / 2,
-            config::VirtualHeight / 2 - 46,
+            (static_cast<int>(camera_.ViewportSize().x) - titleWidth) / 2,
+            static_cast<int>(camera_.ViewportSize().y) / 2 - 46,
             titleFontSize,
             Color{ 235, 245, 255, 255 });
         DrawText(
             subtitle,
-            (config::VirtualWidth - subtitleWidth) / 2,
-            config::VirtualHeight / 2 + 18,
+            (static_cast<int>(camera_.ViewportSize().x) - subtitleWidth) / 2,
+            static_cast<int>(camera_.ViewportSize().y) / 2 + 18,
             subtitleFontSize,
             Color{ 170, 220, 230, 230 });
     }
@@ -1199,8 +1208,8 @@ namespace rjm
         const int paddingY = 10;
         const int boxWidth = textWidth + paddingX * 2;
         const int boxHeight = fontSize + paddingY * 2;
-        const int x = (config::VirtualWidth - boxWidth) / 2;
-        const int y = config::VirtualHeight - 92;
+        const int x = (static_cast<int>(camera_.ViewportSize().x) - boxWidth) / 2;
+        const int y = static_cast<int>(camera_.ViewportSize().y) - 92;
 
         DrawRectangle(x, y, boxWidth, boxHeight, Color{ 8, 12, 18, 180 });
         DrawRectangleLinesEx(

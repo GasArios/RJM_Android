@@ -61,6 +61,8 @@ namespace rjm
         mobile::MobileAim mobileAim_;
         mobile::ReloadQueue mobileReload_;
         bool mobileAssist_ = true, mobileShake_ = true;
+        mobile::AimMode mobileAimMode_ = mobile::AimMode::Character;
+        bool mobileWasPinching_ = false;
         float mobileAutoSaveSeconds_ = 0;
         int mobilePreviousMenu_ = 0;
         std::string mobileNotice_;

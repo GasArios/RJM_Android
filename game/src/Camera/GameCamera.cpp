@@ -131,6 +131,26 @@ namespace rjm
         return camera_.zoom;
     }
 
+    void GameCamera::SetViewportSize(float width,float height)
+    {
+        if(width==viewportSize_.x && height==viewportSize_.y) return;
+        viewportSize_={std::max(1.0f,width),std::max(1.0f,height)};
+        targetWorld_=ClampTargetToBounds(targetWorld_);
+        UpdateRaylibCamera();
+    }
+
+    void GameCamera::SetZoomAnchored(float zoom,Vector2 worldAnchor)
+    {
+        if(!std::isfinite(zoom)) return;
+        const float next=std::clamp(zoom,tuning_.minZoom,tuning_.maxZoom);
+        const float ratio=camera_.zoom/next;
+        targetWorld_={worldAnchor.x-(worldAnchor.x-targetWorld_.x)*ratio,
+                      worldAnchor.y-(worldAnchor.y-targetWorld_.y)*ratio};
+        tuning_.zoom=next;camera_.zoom=next;
+        targetWorld_=ClampTargetToBounds(targetWorld_);
+        UpdateRaylibCamera();
+    }
+
     void GameCamera::ApplyZoomInput(float mouseWheelMove)
     {
         if (mouseWheelMove == 0.0f)
@@ -201,13 +221,13 @@ namespace rjm
 
     Vector2 GameCamera::ClampTargetToBounds(Vector2 targetWorld) const
     {
-        const float offsetX = static_cast<float>(config::VirtualWidth) * tuning_.offsetRatio.x;
-        const float offsetY = static_cast<float>(config::VirtualHeight) * tuning_.offsetRatio.y;
+        const float offsetX = viewportSize_.x * tuning_.offsetRatio.x;
+        const float offsetY = viewportSize_.y * tuning_.offsetRatio.y;
 
         const float leftVisible = offsetX / camera_.zoom;
-        const float rightVisible = (static_cast<float>(config::VirtualWidth) - offsetX) / camera_.zoom;
+        const float rightVisible = (viewportSize_.x - offsetX) / camera_.zoom;
         const float topVisible = offsetY / camera_.zoom;
-        const float bottomVisible = (static_cast<float>(config::VirtualHeight) - offsetY) / camera_.zoom;
+        const float bottomVisible = (viewportSize_.y - offsetY) / camera_.zoom;
 
         const float minWorldX = worldBounds_.x;
         const float maxWorldX = worldBounds_.x + worldBounds_.width;
@@ -223,8 +243,8 @@ namespace rjm
     void GameCamera::UpdateRaylibCamera()
     {
         camera_.offset = {
-            static_cast<float>(config::VirtualWidth) * tuning_.offsetRatio.x,
-            static_cast<float>(config::VirtualHeight) * tuning_.offsetRatio.y
+            viewportSize_.x * tuning_.offsetRatio.x,
+            viewportSize_.y * tuning_.offsetRatio.y
         };
 
         camera_.target = CoordinateSpace::WorldToRender(targetWorld_);

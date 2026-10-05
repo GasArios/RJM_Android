@@ -46,6 +46,7 @@ namespace rjm
     // - 순서는 보통 시간 갱신 -> 입력 갱신 -> 게임 로직 갱신입니다.
     void Game::Update(float deltaTime, const ViewportScaler& viewport)
     {
+        context_.viewport = &viewport;
         time_.Update(deltaTime);
         input_.Poll(viewport);
         scenes_.Update(context_, time_.DeltaSeconds());
