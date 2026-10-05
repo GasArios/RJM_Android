@@ -6,7 +6,9 @@
 
 ## 현재 상태
 
-첫 Android 프로토타입의 소스와 자동 APK 빌드가 연결되어 있습니다. 빌드와 Android 설치 검증이 성공하면 [Releases](https://github.com/GasArios/RJM_Android/releases)에 APK가 올라옵니다. 실기기 조작감 검증은 별도로 진행합니다.
+첫 Android APK **0.1.0**을 만들었고 빌드·서명·Android 15 에뮬레이터 설치/실행 검증이 통과했습니다. Galaxy S24 Ultra용 ARM64 코드가 포함되어 있습니다. 실기기 조작감·성능 검증은 별도로 진행합니다.
+
+**[APK 바로 다운로드 — 약 6.4MB](https://github.com/GasArios/RJM_Android/releases/download/android-prototype-3/RJM-Android-0.1.0.apk)** · [릴리스](https://github.com/GasArios/RJM_Android/releases/tag/android-prototype-3) · [검증 기록](docs/validation-0.1.0.md)
 
 ## 설치와 조작
 
