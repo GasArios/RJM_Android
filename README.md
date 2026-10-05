@@ -4,7 +4,9 @@
 
 ## 조작 패치 0.1.1
 
-첫 APK의 실기기 피드백을 반영해 **핀치 확대·전체 화면 비율·조준 기준 선택·원본 자동 총 교체와 전체 재장전**을 구현했습니다. 새 APK는 자동 행동 검증과 Android 에뮬레이터 검증을 통과한 뒤 [Releases](https://github.com/GasArios/RJM_Android/releases)에 공개합니다.
+첫 APK의 실기기 피드백을 반영해 **핀치 확대·전체 화면 비율·조준 기준 선택·원본 자동 총 교체와 전체 재장전**을 구현했습니다. 자동 행동 검증과 Android 15 에뮬레이터 검증을 통과했고, Galaxy용 ARM64 코드가 포함되어 있습니다.
+
+**[APK 바로 다운로드 — 약 6.5MB](https://github.com/GasArios/RJM_Android/releases/download/android-prototype-5/RJM-Android-0.1.1.apk)** · [릴리스](https://github.com/GasArios/RJM_Android/releases/tag/android-prototype-5) · [검증 기록](docs/validation-0.1.1.md)
 
 [0.1.1 변경·설치 안내](docs/release-0.1.1.md) · [소스 구조와 수치](docs/architecture.md) · [첫 APK 검증 기록](docs/validation-0.1.0.md)
 
@@ -28,7 +30,7 @@
 
 ## 설치와 이번 테스트
 
-Releases에서 `RJM-Android-0.1.1.apk`를 내려받아 설치합니다. 테스트 서명 키가 이전 빌드와 다르면 기존 앱을 삭제하고 설치해야 하며 앱 내부 체크포인트가 초기화됩니다.
+Releases에서 `RJM-Android-0.1.1.apk`를 내려받아 설치합니다. 이번 APK의 서명은 기존 0.1.0과 다릅니다. **기존 앱을 삭제한 뒤 설치**해야 하며 앱 내부 체크포인트가 초기화됩니다.
 
 1. 캐릭터 기준 / 중앙 기준으로 같은 구간을 이동하고 가장자리에서 좌우·상하 방향을 비교합니다.
 2. 일시정지 중 편한 배율을 찾고, 재기동 뒤 설정이 유지되는지 확인합니다.
