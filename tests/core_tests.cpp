@@ -67,6 +67,9 @@ int main() {
     Require(c.SelectedSlot()==1&&c.CurrentMenu()==Menu::Gameplay,"wide panel hitbox mismatch");
     Cancel(c);c.BeginFrame();Down(c,0,{800,400});c.SetScreenSize(1600,720);
     Require(!c.FireHeld()&&!c.Pinching(),"resize retains stale pointer");
+    Cancel(c);c.BeginFrame();Down(c,0,{400,300});Down(c,1,{800,300});
+    Move(c,0,{300,300});Move(c,1,{900,300});Up(c,0);Up(c,1);
+    Require(!c.Pinching()&&Near(c.PinchScale(),1.5f)&&!c.FirePressed(),"batched pinch loses final zoom / fires");
     std::cout<<"PASS pinch expansion/contraction, release gate, pause zoom and wide UI\n";
 
     MobileAim aim;aim.UpdateScreen({100,100},{100,0},{1280,720},AimMode::Character);

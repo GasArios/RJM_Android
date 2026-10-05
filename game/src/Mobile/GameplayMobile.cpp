@@ -56,7 +56,8 @@ bool GameplayScene::UpdateMobile(GameContext& context,float deltaSeconds) {
     const Vector2 size=controls.ScreenSize();
     camera_.SetViewportSize(size.x,size.y);
     if(controls.PinchScale()!=1.0f) camera_.SetZoomAnchored(camera_.Zoom()*controls.PinchScale(),player_.Position());
-    if(mobileWasPinching_ && !controls.Pinching()) {
+    // A short gesture can start and finish in one input batch while paused.
+    if(!controls.Pinching() && (mobileWasPinching_ || controls.PinchScale()!=1.0f)) {
         SaveMobileCheckpoint();TraceLog(LOG_INFO,"RJM: zoom=%.3f",camera_.Zoom());
     }
     mobileWasPinching_=controls.Pinching();
