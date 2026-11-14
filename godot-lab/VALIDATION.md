@@ -1,5 +1,7 @@
 # 달빛 항구 0.1.1 그래픽 검증
 
+- [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-5), Android versionCode 5, ARM64, 25,982,006 bytes. SHA-256: `67ceb2196455e4e6f076d3705f32cc9be9f95d6ab7bc1305e3304657663da9f2`.
+- [최종 빌드와 Android 15 재검증](https://github.com/GasArios/RJM_Android/actions/runs/43589498390). 공개 APK·화면 캡처 체크섬이 CI 결과와 일치합니다.
 - [Android 15 렌더링 및 조작 검증](https://github.com/GasArios/RJM_Android/actions/runs/43589111282)
 - `range.png`, `recoil.png`, `guns.png`, `pause.png`의 2400×1080 인게임 캡처를 직접 확인했습니다. 배경과 파란 주인공, 실제 충돌이 있는 돌 윗면을 구분할 수 있었고 메뉴 글자와 터치 조작이 겹치지 않았습니다.
 - 기존 소프트웨어 그래픽 설정은 입력 검사가 통과해도 빈 화면만 그렸습니다. 에뮬레이터를 ANGLE로 실행하고 캡처의 픽셀 변화를 확인하여 빈 화면이 통과하지 않게 했습니다. 렌더링, 설치, 사격, 총 교체, 재장전, 뒤로가기, 설정 복원 검증을 다시 통과했습니다.

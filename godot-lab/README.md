@@ -2,13 +2,16 @@
 
 기존 raylib 앱의 조작감을 Godot 4.6.3의 작은 시험장에서 비교하는 프로젝트입니다. 기존 앱과는 다른 패키지 `com.gasarios.rjm.lab`으로, 설정과 설치 상태가 분리됩니다. 기존 APK나 저장 데이터를 지우지 않습니다.
 
-**[Galaxy용 APK 다운로드 — 약 26 MB](https://github.com/GasArios/RJM_Android/releases/download/godot-lab-2/RJM-Godot-Lab.apk)** · [릴리스](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-2) · [검증 기록](VALIDATION.md)
+**[달빛 항구 0.1.1 APK — 약 26 MB](https://github.com/GasArios/RJM_Android/releases/download/godot-lab-5/RJM-Godot-Lab.apk)** · [실제 게임 화면](https://github.com/GasArios/RJM_Android/releases/download/godot-lab-5/RJM-Moonlit-Harbor.png) · [검증 기록](VALIDATION.md)
+
+기존 Godot Lab은 삭제하지 않고 업데이트할 수 있습니다. [이전 시험장 0.1.0](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-2)도 확인할 수 있습니다.
 
 [플레이 방법](RELEASE.md) · [Godot Lab 빌드](https://github.com/GasArios/RJM_Android/actions/workflows/godot-lab.yml) · [Releases](https://github.com/GasArios/RJM_Android/releases)
 
 | 파일 | 역할 |
 |---|---|
 | `scenes/lab.tscn` | 직접 편집할 수 있는 32px TileMapLayer 시험장, 카메라, HUD |
+| `assets/harbor/` / `scripts/draw_harbor_art.py` | 직접 제작한 밤하늘·항구·소품과 다시 생성하는 스크립트 |
 | `src/tuning.gd` | 원본 총기·물리 수치를 픽셀과 초 단위로 관리 |
 | `src/recoil.gd` / `src/field.gd` | 원본 Y-up 공식을 Godot Y-down으로 변환하고, X→Y 순서로 지형 충돌과 착지 보정 처리 |
 | `src/touch.gd` / `src/loadout.gd` | 손가락 역할과 사격·자동 교체·지상 재장전 |
