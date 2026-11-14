@@ -27,9 +27,48 @@ no_shots() {
   fi
 }
 
+capture() {
+  local name=$1
+  for _ in $(seq 1 8); do
+    adb exec-out screencap -p > "lab-smoke/$name.png"
+    if python3 - "lab-smoke/$name.png" <<'PY'
+from pathlib import Path
+import struct
+import sys
+import zlib
+
+# Decode the screenshot enough to distinguish an actual game frame from a
+# uniform clear/splash frame, without depending on Ubuntu image packages.
+png = Path(sys.argv[1]).read_bytes()
+assert png[:8] == b'\x89PNG\r\n\x1a\n', 'invalid screenshot'
+width, height, depth, color = struct.unpack_from('>IIBB', png, 16)
+assert width > height and depth == 8 and color in (2, 6), 'expected landscape RGB screenshot'
+channels = 4 if color == 6 else 3
+cursor = 8
+data = bytearray()
+while cursor + 12 <= len(png):
+    n, kind = struct.unpack_from('>I4s', png, cursor)
+    if kind == b'IDAT':
+        data.extend(png[cursor+8:cursor+8+n])
+    cursor += n + 12
+pixels = zlib.decompress(data)
+assert len(pixels) == (width * channels + 1) * height, 'unexpected PNG layout'
+# Filtered scanline bytes of a flat frame are almost entirely zero (or show a
+# single constant pixel value repeated). Detailed frames vary across many rows.
+stride = width * channels + 1
+varied_rows = sum(len(set(pixels[i+1:i+stride])) >= 24 for i in range(0, len(pixels), stride))
+assert varied_rows >= max(12, height // 20), f'blank or unrendered frame: {varied_rows} varied rows'
+PY
+    then return 0; fi
+    sleep 1
+  done
+  echo "Failed to capture a rendered frame: $name" >&2
+  return 1
+}
+
 wait_log 'RJM_GODOT ready'
-sleep 4
-adb exec-out screencap -p > lab-smoke/range.png
+sleep 2
+capture range
 python3 - <<'PY' > lab-smoke/coords.sh
 import struct
 from pathlib import Path
@@ -49,10 +88,10 @@ no_shots
 adb shell input tap $down
 wait_log 'RJM_GODOT shot REVOLVER'
 sleep 0.2
-adb exec-out screencap -p > lab-smoke/recoil.png
+capture recoil
 adb shell input tap $guns
 wait_log 'RJM_GODOT menu=guns'
-adb exec-out screencap -p > lab-smoke/guns.png
+capture guns
 adb shell input tap $shotgun
 wait_log 'RJM_GODOT selected SHOTGUN'
 adb shell input tap $down
@@ -62,7 +101,7 @@ wait_log 'RJM_GODOT reload queued'
 wait_log 'RJM_GODOT reloaded'
 adb shell input keyevent KEYCODE_BACK
 wait_log 'RJM_GODOT menu=pause'
-adb exec-out screencap -p > lab-smoke/pause.png
+capture pause
 adb shell input tap $knob
 wait_log 'RJM_GODOT knob=0'
 adb shell am force-stop "$app"
@@ -73,5 +112,5 @@ adb shell input keyevent KEYCODE_HOME
 wait_log 'RJM_GODOT menu=pause'
 adb shell am start -W -n "$launcher"
 adb shell pidof "$app"
-! grep -E 'FATAL EXCEPTION|Fatal signal|SCRIPT ERROR' lab-smoke/current.txt
-echo "PASS Android Godot install, touch, guns, reload, Back, focus and setting restore"
+! grep -E 'FATAL EXCEPTION|Fatal signal|SCRIPT ERROR|CanvasShaderGLES3: Program linking failed' lab-smoke/current.txt
+echo "PASS Android Godot rendered frames, install, touch, guns, reload, Back, focus and setting restore"
