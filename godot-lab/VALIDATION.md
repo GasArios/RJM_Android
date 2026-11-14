@@ -1,3 +1,10 @@
+# 캐릭터 반동 애니메이션 0.1.2 검증
+
+- [Godot 및 Android 15 검증](https://github.com/GasArios/RJM_Android/actions/runs/43590649392)
+- 정지 시 정사각형, 발사 직후 압축, 대각선 반동 방향으로 늘어남, 총구 위치 추적, 착지 시 바닥 접촉, 정사각형 복귀와 일시정지 중 애니메이션 멈춤을 확인했습니다.
+- 리볼버 76px, 샷건 164px의 기존 최고 상승 높이와 충돌 셀 320개의 위치를 유지했습니다.
+- Android 에뮬레이터에서 정지 상태와 발사 후 실제 화면을 열어 눈 제거와 세로 변형을 확인했습니다. 갤럭시에서의 애니메이션 체감은 사용자 실기기 테스트가 남아 있습니다.
+
 # 달빛 항구 0.1.1 그래픽 검증
 
 - [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-5), Android versionCode 5, ARM64, 25,982,006 bytes. SHA-256: `67ceb2196455e4e6f076d3705f32cc9be9f95d6ab7bc1305e3304657663da9f2`.

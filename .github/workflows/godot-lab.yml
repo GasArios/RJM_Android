@@ -109,6 +109,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cp lab-review/range.png lab-dist/RJM-Moonlit-Harbor.png
+          cp lab-review/recoil.png lab-dist/RJM-Recoil.png
           gh release create "godot-lab-${{ github.run_number }}" lab-dist/* \
             --target "${{ github.sha }}" --prerelease --latest=false \
             --title "RJM Godot Lab 0.1.2 (build ${{ github.run_number }})" \
