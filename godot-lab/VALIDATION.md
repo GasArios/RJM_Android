@@ -1,3 +1,11 @@
+# 달빛 항구 0.1.1 그래픽 검증
+
+- [Android 15 렌더링 및 조작 검증](https://github.com/GasArios/RJM_Android/actions/runs/43589111282)
+- `range.png`, `recoil.png`, `guns.png`, `pause.png`의 2400×1080 인게임 캡처를 직접 확인했습니다. 배경과 파란 주인공, 실제 충돌이 있는 돌 윗면을 구분할 수 있었고 메뉴 글자와 터치 조작이 겹치지 않았습니다.
+- 기존 소프트웨어 그래픽 설정은 입력 검사가 통과해도 빈 화면만 그렸습니다. 에뮬레이터를 ANGLE로 실행하고 캡처의 픽셀 변화를 확인하여 빈 화면이 통과하지 않게 했습니다. 렌더링, 설치, 사격, 총 교체, 재장전, 뒤로가기, 설정 복원 검증을 다시 통과했습니다.
+- 원래 지형의 320개 충돌 셀 좌표와 발사·조작 규칙을 유지했습니다. 새 그림은 `scripts/draw_harbor_art.py`로 다시 생성할 수 있습니다.
+- Galaxy S24 Ultra의 화면 밝기에서 보이는 착지선과 연사 중 가독성은 사용자 실기기 테스트가 남아 있습니다.
+
 # RJM Godot Lab 0.1.0 검증
 
 - [빌드와 Android 15 테스트](https://github.com/GasArios/RJM_Android/actions/runs/43581835372)

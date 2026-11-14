@@ -7,4 +7,6 @@
 - 파란 네모, 밝은 탄환, 가까운 표적이 풍경에 묻히지 않게 대비를 잡았습니다.
 - 기존 시험장의 발판 충돌 위치, 반동 수치, 재장전과 터치 조작을 유지합니다.
 
+릴리스의 `RJM-Moonlit-Harbor.png`는 Android 에뮬레이터의 실제 인게임 캡처입니다. [아트 검증 기록](https://github.com/GasArios/RJM_Android/blob/godot-lab/godot-lab/VALIDATION.md)도 확인할 수 있습니다.
+
 Galaxy에서 어두운 화면 밝기로도 발판 끝이 보이는지, 연사하며 움직일 때 파란 주인공과 탄환을 놓치지 않는지 비교해 주세요. 이 장면은 전체 게임의 아트 방향을 고르는 첫 시험장입니다.
