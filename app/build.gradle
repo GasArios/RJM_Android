@@ -1,5 +1,12 @@
 plugins { id 'com.android.application' }
 
+def rjmKeyPath = System.getenv('RJM_ANDROID_KEYSTORE_PATH')
+def rjmKeyPassword = System.getenv('RJM_ANDROID_KEYSTORE_PASSWORD')
+def rjmVersionCode = (System.getenv('RJM_ANDROID_VERSION_CODE') ?: '3').toInteger()
+if (rjmKeyPath && !rjmKeyPassword) {
+    throw new GradleException('Persistent RJM signing requires the keystore password.')
+}
+
 android {
     namespace 'com.gasarios.rjm'
     compileSdk 35
@@ -8,15 +15,31 @@ android {
         applicationId 'com.gasarios.rjm'
         minSdk 26
         targetSdk 35
-        versionCode 3
+        versionCode rjmVersionCode
         versionName '0.1.2'
         testInstrumentationRunner 'com.gasarios.rjm.ControlSmoke'
         ndk { abiFilters 'arm64-v8a', 'x86_64' }
         externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_shared', '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON' } }
     }
-    // Gradle creates a test signing key inside the temporary build environment.
-    // Never commit or publish private signing keys.
-    buildTypes { debug { debuggable true } }
+    // CI restores a fixed key from repository secrets. Without it, debug APKs
+    // are validation-only and the workflow cannot publish an installable release.
+    signingConfigs {
+        if (rjmKeyPath) {
+            rjmPersistent {
+                storeFile file(rjmKeyPath)
+                storePassword rjmKeyPassword
+                keyAlias 'rjm'
+                keyPassword rjmKeyPassword
+                storeType 'PKCS12'
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
+            if (rjmKeyPath) signingConfig signingConfigs.rjmPersistent
+        }
+    }
     externalNativeBuild { cmake { path file('../CMakeLists.txt'); version '3.22.1' } }
     sourceSets { main { assets.srcDirs = ['../game/assets'] } }
 }

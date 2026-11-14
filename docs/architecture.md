@@ -41,4 +41,4 @@
 
 raylib 5.5 고정 커밋 `c1ab645ca298a2801097931d1079b10ff7eb9df8`, AGP 8.9.2, Gradle 8.11.1, JDK 17, SDK 35, NDK 27.2.12479018, CMake 3.22.1을 사용합니다. GitHub Actions에서 `gradle --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace`로 빌드합니다. Galaxy용 ARM64와 에뮬레이터용 x86_64를 포함합니다.
 
-개인 키는 공개하지 않습니다. 임시 빌드 환경의 테스트 서명 키가 이전 APK와 다르면 삭제·재설치가 필요하며 앱 저장 데이터가 지워집니다. 추후 지속 서명 키는 GitHub Secrets에 보관합니다. 에뮬레이터 결과는 실제 Galaxy 손가락 감각·센서·발열·프레임 검증을 대체하지 않습니다.
+개인 키는 공개하지 않습니다. [고정 서명 설정](android-updates.md)의 두 GitHub Actions Secret을 사용하며, 공개 인증서 지문을 고정하고 versionCode를 실행 번호에 따라 증가시킵니다. 키 등록 전에는 검증만 진행하고 새 공개 APK는 발행하지 않습니다. 0.1.2의 기존 임시 키에서 전환할 때 한 번은 재설치해야 합니다. 이후 같은 키 APK의 덮어쓰기 설치와 앱 데이터 보존을 자동 검증합니다. 에뮬레이터 결과는 실제 Galaxy 손가락 감각·센서·발열·프레임 검증을 대체하지 않습니다.

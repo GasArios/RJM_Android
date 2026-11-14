@@ -6,3 +6,11 @@ local.properties
 *.log
 *.keystore
 core
+
+# Private Android signing material is never source code.
+*.p12
+*.pfx
+*.jks
+*.b64
+.signing/
+__pycache__/
