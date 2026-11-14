@@ -14,3 +14,10 @@ core
 *.b64
 .signing/
 __pycache__/
+
+# Godot experiment import caches and export credentials.
+.godot/
+export_credentials.cfg
+lab-dist/
+lab-test/
+lab-smoke/
