@@ -2,6 +2,7 @@ extends SceneTree
 
 const T = preload("res://src/tuning.gd")
 const Recoil = preload("res://src/recoil.gd")
+const RecoilBody = preload("res://src/recoil_body.gd")
 const Loadout = preload("res://src/loadout.gd")
 const Touch = preload("res://src/touch.gd")
 const Lab = preload("res://scenes/lab.tscn")
@@ -17,6 +18,28 @@ func check(test: bool, message: String) -> void:
 		push_error(message)
 
 func _run() -> void:
+	var body := RecoilBody.new()
+	var center := Vector2(220, 816)
+	check(body.pose(center, true).is_equal_approx(Transform2D(0.0, center)), "Idle body is not square")
+	var diagonal := Vector2(1, -1).normalized()
+	body.launch(diagonal * 950.0, 0.12)
+	body.advance(0.045, diagonal * 950.0, false)
+	var squeeze := body.pose(center, true)
+	check(squeeze.basis_xform(diagonal).length() < 0.9, "Body did not compress during shot stop")
+	body.advance(0.12, diagonal * 950.0, false)
+	var stretch := body.pose(center, false)
+	check(stretch.basis_xform(diagonal).length() > 1.2 and stretch.basis_xform(diagonal.orthogonal()).length() < 0.9, "Body did not stretch along the actual recoil axis")
+	var edge := stretch.affine_inverse() * RecoilBody.edge(stretch, -diagonal)
+	check(is_equal_approx(maxf(absf(edge.x), absf(edge.y)), T.HALF), "Drawn barrel detached from the distorted body")
+	body.land(800.0)
+	var landing := body.pose(center, true)
+	check(landing.y.y < 0.8 and landing.x.x > 1.2, "Heavy landing did not flatten the body")
+	check(is_equal_approx((landing * Vector2(T.HALF, T.HALF)).y, center.y + T.HALF), "Flattened body lost contact with floor")
+	for i in range(60):
+		body.advance(1.0/60.0, Vector2.ZERO, true)
+	check(body.pose(center, true).is_equal_approx(Transform2D(0.0, center)), "Visual body did not return to square")
+	print("PASS Godot body squash, recoil stretch, attached barrel, floor alignment and recovery")
+
 	var aim := Touch.new()
 	check(aim.pad_down(12, Vector2.ZERO) and not aim.wants_fire(), "Pad center fired")
 	aim.pad_move(12, Vector2(0, 150))
@@ -81,7 +104,7 @@ func _run() -> void:
 			lab.advance(1.0/60.0)
 		check(lab.guns.shot_count == 1 and lab.grounded, "Tap did not complete a single flight")
 		peaks.append(lab.flight_peak)
-	check(peaks[0] > 65 and peaks[1] > peaks[0]+60, "Revolver and shotgun launch heights are not distinct")
+	check(peaks == [76, 164], "Visual deformation changed the established recoil heights")
 	print("RJM_GODOT tested apex: revolver=", peaks[0], " shotgun=", peaks[1])
 
 	lab._reset_range()
@@ -89,9 +112,11 @@ func _run() -> void:
 	lab.advance(1.0/60.0)
 	lab.set_menu("pause")
 	var stopped: Vector2 = lab.player
+	var stopped_body: Transform2D = lab.body.pose(lab.player, lab.grounded)
 	for i in range(30):
 		lab.advance(1.0/60.0)
 	check(lab.player == stopped and lab.guns.shot_count == 1, "Pause did not freeze input/physics")
+	check(lab.body.pose(lab.player, lab.grounded).is_equal_approx(stopped_body), "Paused body continued to animate")
 	lab.set_menu("")
 	for i in range(30):
 		lab.advance(1.0/60.0)

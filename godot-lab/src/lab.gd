@@ -1,6 +1,7 @@
 extends Node2D
 const T = preload("res://src/tuning.gd")
 const Recoil = preload("res://src/recoil.gd")
+const RecoilBody = preload("res://src/recoil_body.gd")
 const Loadout = preload("res://src/loadout.gd")
 const Touch = preload("res://src/touch.gd")
 const PREFS := "user://lab-settings.cfg"
@@ -11,6 +12,7 @@ const MOUSE_ID := -1
 @onready var hud: Control = $CanvasLayer/HUD
 var guns := Loadout.new()
 var touch := Touch.new()
+var body := RecoilBody.new()
 var player := Vector2(220, 816)
 var velocity := Vector2.ZERO
 var grounded := true
@@ -141,6 +143,7 @@ func _action(action: String, id: int) -> void:
 
 func _reset_range() -> void:
 	guns = Loadout.new()
+	body = RecoilBody.new()
 	bullets.clear()
 	field.hits = 0
 	player = field.START
@@ -193,10 +196,13 @@ func advance(delta: float) -> void:
 			var before := grounded
 			var old_y := player.y
 			velocity = Recoil.forces(velocity, dt*0.5, grounded, touch.brace_id != -999)
+			var fall_speed := velocity.y
 			var result: Array = field.move_box(player, velocity, dt*0.5)
 			player = result[0]
 			velocity = result[1]
 			grounded = result[2]
+			if not before and grounded:
+				body.land(fall_speed)
 			if before and not grounded:
 				launch_y = old_y
 				flight_peak = 0
@@ -208,6 +214,7 @@ func advance(delta: float) -> void:
 			print("RJM_GODOT reloaded")
 		_move_bullets(dt)
 		field.fade(dt)
+	body.advance(world_delta, velocity, grounded)
 	if menu != "pause":
 		visual_time += delta
 		flash = maxf(flash-delta, 0.0)
@@ -230,7 +237,9 @@ func _camera_goal() -> Vector2:
 
 func _fire(slot: int, aim: Vector2) -> void:
 	var gun: Dictionary = T.GUNS[slot]
+	var before := velocity
 	velocity = Recoil.impulse(velocity, aim, gun.recoil, grounded, touch.brace_id != -999, maxf(launch_y-player.y, 0.0), gun.resist)
+	body.launch(velocity - before, maxf(stop_left, gun.stop))
 	var count := int(gun.count)
 	for i in range(count):
 		var angle := deg_to_rad(lerpf(-gun.spread*0.5, gun.spread*0.5, float(i)/float(maxi(count-1, 1))))
@@ -263,12 +272,17 @@ func _draw() -> void:
 		var color := Color("#ffd180") if bullet.gold else Color("#fff0a3")
 		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, Color("#222031"), 6.0, true)
 		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, color, 3.0, true)
-	draw_rect(Rect2(player-Vector2.ONE*(T.HALF-1.0)+Vector2(2, 4), Vector2.ONE*(T.HALF*2.0)), Color("#10213e"))
-	draw_rect(Rect2(player-Vector2.ONE*T.HALF, Vector2.ONE*T.HALF*2.0), Color("#59b9ff"))
-	draw_rect(Rect2(player-Vector2.ONE*T.HALF, Vector2.ONE*T.HALF*2.0), Color("#c3f5ff"), false, 2.0)
-	draw_rect(Rect2(player+Vector2(-8, -6), Vector2(5, 7)), Color("#14364c"))
-	draw_rect(Rect2(player+Vector2(2, -6), Vector2(5, 7)), Color("#14364c"))
-	draw_line(player+direction*12, player+direction*30, Color("#b3dbe8"), 6.0, true)
+	var transform := body.pose(player, grounded)
+	var square := Rect2(Vector2.ONE * -T.HALF, Vector2.ONE * T.HALF * 2.0)
+	draw_set_transform_matrix(transform)
+	draw_rect(square, Color("#3899f0"))
+	draw_rect(Rect2(-T.HALF + 2.0, -T.HALF + 2.0, T.HALF*2.0 - 4.0, 3.0), Color("#69c8ff"))
+	draw_rect(Rect2(-T.HALF + 2.0, T.HALF - 5.0, T.HALF*2.0 - 4.0, 3.0), Color("#2675ce"))
+	draw_rect(square, Color("#beefff"), false, 1.65)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
+	var muzzle := RecoilBody.edge(transform, direction)
+	draw_line(muzzle - direction * 3.0, muzzle + direction * 11.0, Color("#233959"), 8.0, true)
+	draw_line(muzzle - direction * 3.0, muzzle + direction * 11.0, Color("#b3dbe8"), 4.0, true)
 	if menu == "" and touch.pad_offset.length() >= T.DEAD_ZONE and not touch.blocked:
 		draw_line(player+direction*36, player+direction*56, Color("#ffc77f"), 2.0, true)
 		var v := -direction
@@ -277,4 +291,4 @@ func _draw() -> void:
 		draw_line(tip, tip-v.rotated(0.5)*12, Color("#68d4c1"), 2.0, true)
 		draw_line(tip, tip-v.rotated(-0.5)*12, Color("#68d4c1"), 2.0, true)
 	if flash > 0.0:
-		draw_circle(player+direction*33, 8.0, Color("#fff1a5"))
+		draw_circle(muzzle + direction*15.0, 8.0, Color("#fff1a5"))
