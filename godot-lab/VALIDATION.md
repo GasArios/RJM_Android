@@ -1,5 +1,6 @@
 # 캐릭터 반동 애니메이션 0.1.2 검증
 
+- [최종 빌드 및 Android 15 재검증](https://github.com/GasArios/RJM_Android/actions/runs/43591009601)과 [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-7). ARM64, versionCode 7, 25,978,059 bytes. 공개 파일의 SHA-256 `2dca3de2c49b5d1a02717ed5cc2281c2a65b6515fe81fa2c5118d51e8894a938`가 빌드 결과와 일치합니다.
 - [Godot 및 Android 15 검증](https://github.com/GasArios/RJM_Android/actions/runs/43590649392)
 - 정지 시 정사각형, 발사 직후 압축, 대각선 반동 방향으로 늘어남, 총구 위치 추적, 착지 시 바닥 접촉, 정사각형 복귀와 일시정지 중 애니메이션 멈춤을 확인했습니다.
 - 리볼버 76px, 샷건 164px의 기존 최고 상승 높이와 충돌 셀 320개의 위치를 유지했습니다.
