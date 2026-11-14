@@ -6,7 +6,7 @@
 
 기존 캐릭터/화면 중앙 조준에 우측 하단 **작은 원이 있는 AIM PAD / 작은 원이 없는 TOUCH CIRCLE**을 추가했습니다. 두 패드 모드는 모든 총을 길게 눌러 발사하며, 중심 복귀와 손 떼기로 멈춥니다. 왼쪽 전체 RELOAD도 추가했습니다.
 
-**[APK 바로 다운로드 — 약 6.5MB](https://github.com/GasArios/RJM_Android/releases/download/android-prototype-6/RJM-Android-0.1.2.apk)** · [릴리스](https://github.com/GasArios/RJM_Android/releases/tag/android-prototype-6) · [검증 기록](docs/validation-0.1.2.md)
+**[APK 바로 다운로드 — 약 6.5MB](https://github.com/GasArios/RJM_Android/releases/download/android-prototype-8/RJM-Android-0.1.2.apk)** · [고정 서명 릴리스](https://github.com/GasArios/RJM_Android/releases/tag/android-prototype-8) · [덮어쓰기 검증](https://github.com/GasArios/RJM_Android/actions/runs/43579457305)
 
 자동 행동 검증과 Android 15 네이티브 터치 검증을 통과했습니다. Galaxy용 ARM64 코드가 포함되어 있습니다.
 
@@ -42,11 +42,11 @@
 
 ## 앞으로 삭제 없이 업데이트
 
-[고정 서명 키를 한 번 등록하는 방법](docs/android-updates.md)을 준비했습니다. 등록 후에는 같은 키와 증가하는 versionCode로 APK를 배포하므로 기존 앱 위에 업데이트할 수 있습니다. 키가 없으면 검증만 진행하며 새 공개 APK를 만들지 않습니다. 현재 공개된 0.1.2는 이전 임시 키 버전이므로 고정 키로 넘어갈 때 한 번은 재설치가 필요합니다.
+빌드 1008부터 [고정 서명](docs/android-updates.md)으로 배포합니다. 같은 키로 서명한 이전 APK 위에 새 APK를 설치해 체크포인트와 앱 데이터가 유지되는 것을 Android 15에서 확인했습니다.
 
 ## 설치와 이번 테스트
 
-위 링크에서 `RJM-Android-0.1.2.apk`를 내려받아 설치합니다. 이번 APK는 기존 0.1.1과 서명이 다르므로 **기존 앱을 삭제한 뒤 설치**해야 하며 앱 내부 체크포인트가 초기화됩니다.
+위 링크에서 고정 서명 APK를 내려받습니다. 기존 임시 서명 APK(0.1.2 이하)에서 넘어올 때만 **한 번 삭제 후 설치**해야 하며 그때 체크포인트가 초기화됩니다. 고정 서명 APK를 설치한 뒤에는 새 APK를 열어 업데이트합니다.
 
 1. 같은 구간을 3 AIM PAD / 4 TOUCH CIRCLE로 이동하고 작은 원의 유무를 비교합니다.
 2. 패드 중심 복귀·손 떼기 때 사격이 멈추는지 확인합니다.
