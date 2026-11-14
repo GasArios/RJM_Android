@@ -2,6 +2,8 @@
 
 기존 raylib 앱의 조작감을 Godot 4.6.3의 작은 시험장에서 비교하는 프로젝트입니다. 기존 앱과는 다른 패키지 `com.gasarios.rjm.lab`으로, 설정과 설치 상태가 분리됩니다. 기존 APK나 저장 데이터를 지우지 않습니다.
 
+**[Galaxy용 APK 다운로드 — 약 26 MB](https://github.com/GasArios/RJM_Android/releases/download/godot-lab-2/RJM-Godot-Lab.apk)** · [릴리스](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-2) · [검증 기록](VALIDATION.md)
+
 [플레이 방법](RELEASE.md) · [Godot Lab 빌드](https://github.com/GasArios/RJM_Android/actions/workflows/godot-lab.yml) · [Releases](https://github.com/GasArios/RJM_Android/releases)
 
 | 파일 | 역할 |
