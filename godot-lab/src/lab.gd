@@ -260,7 +260,8 @@ func _move_bullets(dt: float) -> void:
 
 func _draw() -> void:
 	for bullet in bullets:
-		var color := Color("#ffc878") if bullet.gold else Color("#8be6e2")
+		var color := Color("#ffd180") if bullet.gold else Color("#fff0a3")
+		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, Color("#222031"), 6.0, true)
 		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, color, 3.0, true)
 	draw_rect(Rect2(player-Vector2.ONE*(T.HALF-1.0)+Vector2(2, 4), Vector2.ONE*(T.HALF*2.0)), Color("#10213e"))
 	draw_rect(Rect2(player-Vector2.ONE*T.HALF, Vector2.ONE*T.HALF*2.0), Color("#59b9ff"))

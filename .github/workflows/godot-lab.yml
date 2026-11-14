@@ -85,6 +85,8 @@ jobs:
           name: Godot-Lab-Android-evidence
           path: lab-smoke/*
   release:
+    # Require an explicit follow-up commit after reviewing rendered game captures.
+    if: ${{ startsWith(github.event.head_commit.message, 'Publish reviewed') }}
     needs: [build, smoke]
     runs-on: ubuntu-24.04
     permissions:
@@ -102,5 +104,5 @@ jobs:
         run: |
           gh release create "godot-lab-${{ github.run_number }}" lab-dist/* \
             --target "${{ github.sha }}" --prerelease --latest=false \
-            --title "RJM Godot Lab 0.1.0 (build ${{ github.run_number }})" \
+            --title "RJM Godot Lab 0.1.1 (build ${{ github.run_number }})" \
             --notes-file godot-lab/RELEASE.md

@@ -16,7 +16,7 @@ for abi in arm64 x86_64; do
   target="lab-dist/RJM-Godot-Lab.apk"
   if [[ "$abi" == x86_64 ]]; then target="lab-test/RJM-Godot-Lab-x86_64.apk"; fi
   "$tools/zipalign" -P 16 -f 4 "$unsigned/$abi.apk" "$unsigned/aligned.apk"
-  "$tools/apksigner" sign --ks "$RJM_ANDROID_KEYSTORE_PATH" --ks-key-alias rjm \
+  "$tools/apksigner" sign --v4-signing-enabled false --ks "$RJM_ANDROID_KEYSTORE_PATH" --ks-key-alias rjm \
     --ks-pass env:RJM_ANDROID_KEYSTORE_PASSWORD --key-pass env:RJM_ANDROID_KEYSTORE_PASSWORD \
     --out "$target" "$unsigned/aligned.apk"
   "$tools/apksigner" verify --verbose --print-certs "$target" > "$target.certs"

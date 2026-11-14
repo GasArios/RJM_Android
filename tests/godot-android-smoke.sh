@@ -28,7 +28,7 @@ no_shots() {
 }
 
 wait_log 'RJM_GODOT ready'
-sleep 1
+sleep 4
 adb exec-out screencap -p > lab-smoke/range.png
 python3 - <<'PY' > lab-smoke/coords.sh
 import struct
@@ -48,6 +48,8 @@ sleep 1
 no_shots
 adb shell input tap $down
 wait_log 'RJM_GODOT shot REVOLVER'
+sleep 0.2
+adb exec-out screencap -p > lab-smoke/recoil.png
 adb shell input tap $guns
 wait_log 'RJM_GODOT menu=guns'
 adb exec-out screencap -p > lab-smoke/guns.png

@@ -2,6 +2,7 @@ extends Node2D
 ## Terrain is editable in the scene. Use the same X-then-Y collision ordering
 ## as the raylib prototype, with positions in Godot's Y-down world.
 const T = preload("res://src/tuning.gd")
+const PROPS = preload("res://assets/harbor/props.svg")
 const ROOM := Vector2(2464, 928)
 const START := Vector2(220, 816)
 const TARGETS := [Rect2(627, 784, 34, 48), Rect2(1020, 656, 34, 48), Rect2(1563, 528, 34, 48)]
@@ -92,33 +93,37 @@ func fade(dt: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
-	draw_rect(Rect2(-2400, -1700, 7500, 4500), Color("#0a1425"))
-	draw_rect(Rect2(0, 0, ROOM.x, ROOM.y), Color("#0e1c30"))
-	for x in range(0, int(ROOM.x)+1, 64):
-		draw_line(Vector2(x, 0), Vector2(x, 832), Color("#152841"))
-	for y in range(0, 832, 64):
-		draw_line(Vector2(0, y), Vector2(ROOM.x, y), Color("#152841"))
-	for x in range(160, int(ROOM.x), 320):
-		draw_rect(Rect2(x, 180, 18, 650), Color("#122138"))
-		draw_rect(Rect2(x+18, 194, 62, 4), Color("#223d56"))
-		draw_rect(Rect2(x+20, 200, 28, 2), Color("#34506b"))
-	_floor_marks(125, 832, "01  /  LAUNCH LINE", "Aim down to rise")
-	_floor_marks(446, 768, "02  /  LOW STEP", "+64 px")
-	_floor_marks(840, 704, "03  /  HIGH STEP", "+128 px")
-	_floor_marks(1158, 608, "04  /  SHOTGUN LEDGE", "+224 px")
-	_floor_marks(1509, 512, "05  /  UPPER DECK", "+320 px")
-	_floor_marks(1830, 416, "06  /  APEX", "+416 px")
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Props below are scenery. Only the tile cells and unchanged TARGETS hit.
+	for lamp in [Vector2(91, 832), Vector2(384, 832), Vector2(558, 768),
+			Vector2(1111, 704), Vector2(1288, 608), Vector2(1694, 512), Vector2(2012, 416),
+			Vector2(2310, 320), Vector2(2350, 832)]:
+		_prop(lamp - Vector2(16,64), 0)
+	for crate in [Vector2(305,832), Vector2(339,832), Vector2(703,832), Vector2(941,704),
+			Vector2(1195,608), Vector2(1640,576), Vector2(1910,416), Vector2(2253,320)]:
+		_prop(crate - Vector2(16,64), 1)
+		_prop(crate + Vector2(12,-64), 2)
+	for post in [Vector2(167,832), Vector2(768,832), Vector2(1471,832), Vector2(2107,832)]:
+		_prop(post-Vector2(16,64), 4)
+	# A few muted flags make the near roofs read as a harbor. Keep them off the edge line.
+	_banner(Vector2(530, 775), Color("#67455e"))
+	_banner(Vector2(878, 708), Color("#51526e"))
+	_banner(Vector2(1218, 615), Color("#6f4a60"))
+	_banner(Vector2(1606, 519), Color("#585675"))
 	for i in range(TARGETS.size()):
 		var rect: Rect2 = TARGETS[i]
-		draw_line(rect.get_center()-Vector2(0, -16), Vector2(rect.get_center().x, rect.end.y+14), Color("#45627c"), 3)
-		draw_rect(rect, Color("#fff0a5") if target_pulse[i] > 0.0 else Color("#ab6261"))
-		draw_rect(rect.grow(-4), Color("#172943"))
-		draw_circle(rect.get_center(), 10.0, Color("#f2ac6c"))
-		draw_circle(rect.get_center(), 4.0, Color("#f9e2ac"))
+		_prop(Vector2(rect.position.x+1,rect.position.y), 3)
+		if target_pulse[i] > 0.0:
+			var c := Color("#ffdfb3")
+			c.a = minf(target_pulse[i] * 2.4, 0.48)
+			draw_rect(Rect2(rect.position+Vector2(9,14), Vector2(16,23)), c)
 
-func _floor_marks(x: float, y: float, title: String, subtitle: String) -> void:
-	var font := ThemeDB.fallback_font
-	draw_rect(Rect2(x, y-96, 184, 43), Color("#142840"))
-	draw_rect(Rect2(x, y-96, 3, 43), Color("#5ecbc3"))
-	draw_string(font, Vector2(x+12, y-77), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#c8e7ef"))
-	draw_string(font, Vector2(x+12, y-61), subtitle, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7596b0"))
+func _prop(at: Vector2, index: int) -> void:
+	draw_texture_rect_region(PROPS, Rect2(at, Vector2(32,64)), Rect2(index*16,0,16,32))
+
+func _banner(at: Vector2, cloth: Color) -> void:
+	draw_rect(Rect2(at, Vector2(26,2)), Color("#76697c"))
+	draw_colored_polygon(PackedVector2Array([at+Vector2(3,2), at+Vector2(23,2),
+		at+Vector2(23,36), at+Vector2(13,30), at+Vector2(3,36)]), cloth)
+	draw_rect(Rect2(at+Vector2(12,11), Vector2(3,13)), Color("#a18786"))
+	draw_rect(Rect2(at+Vector2(8,15), Vector2(11,3)), Color("#a18786"))

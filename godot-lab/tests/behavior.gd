@@ -57,7 +57,13 @@ func _run() -> void:
 	root.add_child(lab)
 	lab.set_physics_process(false)
 	await process_frame
-	check(lab.field.terrain.get_used_cells().size() > 300, "Editable TileMapLayer is empty")
+	var cells: Array[Vector2i] = lab.field.terrain.get_used_cells()
+	check(cells.size() == 320, "Harbor changed the playable cells")
+	cells.sort()
+	var coords := PackedStringArray()
+	for cell in cells:
+		coords.append("%d,%d" % [cell.x, cell.y])
+	check(";".join(coords).sha256_text() == "765a0c5628be14ffed8b1b9c2f64556594e7102bdded15580939347d77960b5f", "Harbor changed a collision position")
 	check(lab.field.supported(lab.player), "Spawn is not grounded")
 	var fall: Array = lab.field.move_box(Vector2(510, 750), Vector2(0, 300), 0.01)
 	check(fall[2] and absf(fall[0].y-752.0) < 0.01, "Landing or snap on low step failed")
