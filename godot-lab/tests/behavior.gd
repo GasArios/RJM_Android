@@ -92,6 +92,7 @@ func _run() -> void:
 
 	var lab := Lab.instantiate()
 	root.add_child(lab)
+	lab.set_route_enabled(false, false)
 	lab.set_physics_process(false)
 	await process_frame
 	var cells: Array[Vector2i] = lab.field.terrain.get_used_cells()

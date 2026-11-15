@@ -1,6 +1,7 @@
 extends Node2D
 const T = preload("res://src/tuning.gd")
 const Recoil = preload("res://src/recoil.gd")
+const HarborRoute = preload("res://src/harbor_route.gd")
 const RecoilBody = preload("res://src/recoil_body.gd")
 const Loadout = preload("res://src/loadout.gd")
 const Touch = preload("res://src/touch.gd")
@@ -13,6 +14,10 @@ const MOUSE_ID := -1
 var guns := Loadout.new()
 var touch := Touch.new()
 var body := RecoilBody.new()
+var route := HarborRoute.new()
+var route_enabled := true
+var notice := ""
+var notice_left := 0.0
 var player := Vector2(220, 816)
 var velocity := Vector2.ZERO
 var grounded := true
@@ -38,6 +43,11 @@ func _ready() -> void:
 		zoom_level = clampf(float(config.get_value("lab", "zoom", T.DEFAULT_ZOOM)), T.MIN_ZOOM, T.MAX_ZOOM)
 		shake_enabled = bool(config.get_value("lab", "shake", true))
 		knob = bool(config.get_value("lab", "knob", true))
+		route_enabled = bool(config.get_value("lab", "route", true))
+	route.load_save()
+	field.set_route(route_enabled, route)
+	_reset_range()
+	_log_route()
 	hud.lab = self
 	camera.zoom = Vector2.ONE*zoom_level
 	camera.position = _camera_goal()
@@ -88,7 +98,7 @@ func pointer_down(id: int, point: Vector2) -> void:
 		_action(action, id)
 	elif menu == "" and touch.pad_down(id, point-hud.pad_center()):
 		pass
-	elif menu != "guns" and point.distance_to(hud.pad_center()) > T.PAD_RADIUS:
+	elif menu in ["", "pause"] and point.distance_to(hud.pad_center()) > T.PAD_RADIUS:
 		touch.world_down(id, point)
 
 func pointer_move(id: int, point: Vector2) -> void:
@@ -103,7 +113,10 @@ func pointer_up(id: int) -> void:
 		_save()
 
 func _back() -> void:
-	set_menu("pause" if menu == "" else "")
+	if menu == "restart_route":
+		set_menu("pause")
+	else:
+		set_menu("pause" if menu == "" else "")
 
 func set_menu(next: String) -> void:
 	touch.cancel()
@@ -129,11 +142,25 @@ func _action(action: String, id: int) -> void:
 		"resume": set_menu("")
 		"restart":
 			_reset_range()
+			_log_route()
+			set_menu("")
+		"toggle_route":
+			set_route_enabled(not route_enabled)
+			set_menu("")
+		"confirm_restart":
+			set_menu("restart_route")
+		"cancel_restart":
+			set_menu("pause")
+		"restart_route":
+			route.reset()
+			_save_route()
+			_reset_range()
+			_log_route()
 			set_menu("")
 		"revolver", "shotgun":
-			guns.selected = 0 if action == "revolver" else 1
-			set_menu("")
-			print("RJM_GODOT selected ", T.GUNS[guns.selected].name)
+			if guns.select(0 if action == "revolver" else 1):
+				set_menu("")
+				print("RJM_GODOT selected ", T.GUNS[guns.selected].name)
 		"shake":
 			shake_enabled = not shake_enabled
 			_save()
@@ -142,12 +169,61 @@ func _action(action: String, id: int) -> void:
 			_save()
 			print("RJM_GODOT knob=", int(knob))
 
+func set_route_enabled(enabled: bool, persist := true) -> void:
+	route_enabled = enabled
+	touch.cancel()
+	field.set_route(enabled, route)
+	_reset_range()
+	_log_route()
+	if persist:
+		_save()
+
+func _log_route() -> void:
+	if route_enabled:
+		print("RJM_GODOT harbor stage=", route.stage)
+	else:
+		print("RJM_GODOT free practice")
+
+func _save_route() -> void:
+	if not route.save():
+		push_warning("Harbor checkpoint could not be saved.")
+
+func _update_route() -> void:
+	if not route_enabled or not route.update(player, grounded, flight_peak):
+		return
+	match route.stage:
+		HarborRoute.LOW_PIER:
+			_show_notice("LUMINA: Good. The harbor steps are yours to climb.")
+		HarborRoute.SUPPLY:
+			_show_notice("CHECKPOINT REACHED")
+		HarborRoute.UPPER_PIER:
+			guns.unlock_shotgun()
+			guns.select(1)
+			touch.block_until_release()
+			_show_notice("SHOTGUN FOUND   /   Higher recoil, two shells")
+		HarborRoute.BEACON:
+			_show_notice("LUMINA: One lamp is still dark. Light it for me.")
+		HarborRoute.COMPLETE:
+			touch.cancel()
+			set_menu("completed")
+	_save_route()
+	_log_route()
+
+func _show_notice(message: String) -> void:
+	notice = message
+	notice_left = 4.5
+
 func _reset_range() -> void:
 	guns = Loadout.new()
+	if route_enabled:
+		if route.has_shotgun():
+			guns.select(1)
+		else:
+			guns.lock_shotgun()
 	body = RecoilBody.new()
 	bullets.clear()
 	field.hits = 0
-	player = field.START
+	player = route.spawn() if route_enabled else field.START
 	velocity = Vector2.ZERO
 	launch_y = player.y
 	flight_peak = 0
@@ -155,6 +231,8 @@ func _reset_range() -> void:
 	stop_left = 0.0
 	shake_left = 0.0
 	flash = 0.0
+	notice_left = 0.0
+	touch.cancel()
 	direction = Vector2.DOWN
 	camera.position = _camera_goal()
 
@@ -162,6 +240,7 @@ func _save() -> void:
 	var config := ConfigFile.new()
 	config.set_value("lab", "zoom", zoom_level)
 	config.set_value("lab", "knob", knob)
+	config.set_value("lab", "route", route_enabled)
 	config.set_value("lab", "shake", shake_enabled)
 	if config.save(PREFS) != OK:
 		push_warning("Lab settings could not be saved.")
@@ -187,7 +266,7 @@ func advance(delta: float) -> void:
 			elif guns.queued:
 				touch.block_until_release()
 				print("RJM_GODOT reload queued grounded=", grounded)
-	var world_delta := delta * (0.0 if menu == "pause" else (T.SLOW if menu == "guns" or touch.pinch else 1.0))
+	var world_delta := delta * (0.0 if menu in ["pause", "completed", "restart_route"] else (T.SLOW if menu == "guns" or touch.pinch else 1.0))
 	var stop := minf(stop_left, world_delta)
 	stop_left -= stop
 	var dt := world_delta-stop
@@ -215,6 +294,9 @@ func advance(delta: float) -> void:
 			print("RJM_GODOT reloaded")
 		_move_bullets(dt)
 		field.fade(dt)
+		_update_route()
+	field.waypoints.advance(world_delta)
+	notice_left = maxf(notice_left-world_delta, 0.0)
 	body.advance(world_delta)
 	if menu != "pause":
 		visual_time += delta

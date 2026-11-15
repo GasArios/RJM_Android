@@ -11,14 +11,23 @@ func pad_center() -> Vector2:
 	return size - T.PAD_MARGIN - Vector2.ONE*T.PAD_RADIUS
 
 func action_at(point: Vector2) -> String:
+	if lab.menu == "completed" or lab.menu == "restart_route":
+		for i in range(2):
+			if _story_button(i).has_point(point):
+				return ["resume", "confirm_restart"][i] if lab.menu == "completed" else ["cancel_restart", "restart_route"][i]
+		return ""
 	if lab.menu == "pause":
 		for i in range(4):
 			if _pause_button(i).has_point(point):
 				return ["resume", "restart", "shake", "knob"][i]
+		if _pause_mode().has_point(point):
+			return "toggle_route"
+		if lab.route_enabled and _pause_new().has_point(point):
+			return "confirm_restart"
 		return ""
 	if lab.menu == "guns":
 		for i in range(2):
-			if _gun_card(i).has_point(point):
+			if _gun_card(i).has_point(point) and i < lab.guns.equipped_count:
 				return ["revolver", "shotgun"][i]
 		if _gun_close().has_point(point):
 			return "resume"
@@ -45,6 +54,15 @@ func _panel() -> Rect2:
 func _pause_button(i: int) -> Rect2:
 	return Rect2(_panel().position+Vector2(36, 146+i*67), Vector2(580, 56))
 
+func _pause_mode() -> Rect2:
+	return Rect2(_panel().position+Vector2(36, 419), Vector2(280, 38))
+
+func _pause_new() -> Rect2:
+	return Rect2(_panel().position+Vector2(336, 419), Vector2(280, 38))
+
+func _story_button(i: int) -> Rect2:
+	return Rect2(_panel().position+Vector2(36, 262+i*72), Vector2(580, 56))
+
 func _gun_card(i: int) -> Rect2:
 	return Rect2(_panel().position+Vector2(36+i*294, 149), Vector2(286, 198))
 
@@ -69,8 +87,10 @@ func _draw() -> void:
 		_button(_left(1), "RELOAD", lab.guns.queued or lab.guns.reload_left > 0.0)
 		_button(_left(2), "GUNS")
 		_pad()
+		if lab.route_enabled:
+			_objective()
 
-		var status := "AIM DOWN TO RISE" if lab.guns.shot_count == 0 else ""
+		var status := "AIM DOWN TO RISE" if lab.guns.shot_count == 0 and not lab.route_enabled else ""
 		if lab.guns.queued:
 			status = "RELOAD QUEUED   /   LAND TO RELOAD"
 		elif lab.guns.reload_left > 0.0:
@@ -79,8 +99,10 @@ func _draw() -> void:
 			status = "RELEASE THE PAD TO FIRE AGAIN"
 		elif lab.touch.pinch:
 			status = "PINCH TO ZOOM   /   %.2fx" % lab.zoom_level
+		if status.is_empty() and lab.notice_left > 0.0:
+			status = lab.notice
 		if not status.is_empty():
-			var note := Rect2(size.x*0.5-165, size.y-47, 330, 32)
+			var note := Rect2(size.x*0.5-263, size.y-47, 526, 32)
 			_panel_box(note, Color("#171a29cc"), Color("#635d78"))
 			_center(note, status, 15, GOLD if lab.guns.queued or lab.guns.reload_left > 0.0 else SUB)
 		return
@@ -89,13 +111,18 @@ func _draw() -> void:
 	var panel := _panel()
 	_panel_box(panel, Color("#232238"), Color("#69617c"))
 	draw_rect(Rect2(panel.position, Vector2(panel.size.x, 4)), MINT)
-	if lab.menu == "pause":
-		_text(panel.position+Vector2(36, 57), "MOONLIT HARBOR", 34, INK)
+	if lab.menu == "completed" or lab.menu == "restart_route":
+		_story_panel(panel)
+	elif lab.menu == "pause":
+		_text(panel.position+Vector2(36, 57), "MOONLIT HARBOR" if lab.route_enabled else "FREE PRACTICE", 34, INK)
 		_text(panel.position+Vector2(36, 97), "Back: resume   /   Pinch outside the buttons to zoom", 18, SUB)
 		_button(_pause_button(0), "RESUME", true)
-		_button(_pause_button(1), "RESET RANGE")
+		_button(_pause_button(1), "RETRY CHECKPOINT" if lab.route_enabled else "RESET RANGE")
 		_button(_pause_button(2), "CAMERA SHAKE  " + ("ON" if lab.shake_enabled else "OFF"))
 		_button(_pause_button(3), "CONTROL  " + ("AIM PAD" if lab.knob else "TOUCH CIRCLE"))
+		_button(_pause_mode(), "FREE PRACTICE" if lab.route_enabled else "HARBOR ROUTE")
+		if lab.route_enabled:
+			_button(_pause_new(), "REPLAY ROUTE")
 	else:
 		_text(panel.position+Vector2(36, 57), "CHOOSE YOUR RECOIL", 34, INK)
 		_text(panel.position+Vector2(36, 97), "World time: 8%   /   Ammo stays with each gun", 18, SUB)
@@ -104,10 +131,36 @@ func _draw() -> void:
 			var gun: Dictionary = T.GUNS[i]
 			_panel_box(card, Color("#373654") if i == slot else Color("#292a42"), MINT if i == slot else Color("#55526d"))
 			_text(card.position+Vector2(19, 44), gun.name, 26, INK)
+			if i >= lab.guns.equipped_count:
+				_text(card.position+Vector2(19, 98), "LOCKED", 26, SUB)
+				_text(card.position+Vector2(19, 141), "From the pier supply case", 17, SUB)
+				continue
 			_text(card.position+Vector2(19, 101), "%d / %d" % [lab.guns.ammo[i], gun.ammo], 38, GOLD if i == 1 else MINT)
 			_text(card.position+Vector2(19, 145), "RECOIL  %d" % gun.recoil, 19, SUB)
 			_text(card.position+Vector2(19, 176), "EQUIPPED" if i == slot else "TAP TO EQUIP", 14, SUB)
 		_button(_gun_close(), "BACK TO RANGE")
+
+func _objective() -> void:
+	var panel := Rect2(size.x*0.5-243, 24, 486, 66)
+	_panel_box(panel, Color("#171b30db"), Color("#897888"))
+	var progress: int = mini(lab.route.stage+1, 5)
+	_text(panel.position+Vector2(15,24), "HARBOR %d/5   /   %s" % [progress, lab.route.title()], 16, GOLD)
+	_text(panel.position+Vector2(15,50), lab.route.instruction(lab.player), 17, INK)
+
+func _story_panel(panel: Rect2) -> void:
+	var at := panel.position+Vector2(36, 57)
+	if lab.menu == "completed":
+		_text(at, "THE BEACON IS LIT", 34, GOLD)
+		_text(at+Vector2(0,56), "LUMINA", 19, GOLD)
+		_text(at+Vector2(0,90), "That's the harbor, safe for another night.", 22, INK)
+		_text(at+Vector2(0,125), "Next time, I'll show you the road beyond it.", 20, SUB)
+		_button(_story_button(0), "KEEP EXPLORING", true)
+		_button(_story_button(1), "REPLAY THE ROUTE")
+	else:
+		_text(at, "REPLAY THE ROUTE?", 34, INK)
+		_text(at+Vector2(0,56), "This restarts the harbor and locks the shotgun again.", 20, SUB)
+		_button(_story_button(0), "CANCEL", true)
+		_button(_story_button(1), "START AT THE WATERFRONT")
 
 func _pad() -> void:
 	var center := pad_center()
@@ -122,6 +175,12 @@ func _pad() -> void:
 		draw_line(center+v*(T.PAD_RADIUS-12.0), center+v*(T.PAD_RADIUS-3.0), color, 2.0, true)
 	if tip.length() >= T.DEAD_ZONE:
 		draw_line(center, center+tip, color, 2.0, true)
+	if lab.route_enabled and touch.pad_id < 0 and not touch.pinch and not touch.blocked:
+		var hint: Vector2 = lab.route.guide(lab.player, lab.grounded, T.GUNS[lab.guns.selected].recoil)
+		if not hint.is_zero_approx():
+			var marker := center + hint * 65.0
+			draw_arc(marker, 12.0, 0, TAU, 20, Color("#ffd08acc"), 2.0, true)
+			draw_line(center + hint*30.0, marker-hint*13.0, Color("#ffd08a6e"), 2.0, true)
 	if lab.knob:
 		draw_circle(center+tip, T.KNOB_RADIUS, Color("#3b4d6490"))
 		draw_arc(center+tip, T.KNOB_RADIUS, 0, TAU, 36, color, 2.0, true)

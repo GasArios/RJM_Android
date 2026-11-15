@@ -7,8 +7,20 @@ const ROOM := Vector2(2464, 928)
 const START := Vector2(220, 816)
 const TARGETS := [Rect2(627, 784, 34, 48), Rect2(1020, 656, 34, 48), Rect2(1563, 528, 34, 48)]
 @onready var terrain: TileMapLayer = $Terrain
+@onready var waypoints: Node2D = $Waypoints
+var route_enabled := false
 var target_pulse: Array[float] = [0.0, 0.0, 0.0]
 var hits := 0
+
+func set_route(enabled: bool, progress: RefCounted) -> void:
+	route_enabled = enabled
+	$Terrain.visible = not enabled
+	$RouteTerrain.visible = enabled
+	terrain = $RouteTerrain if enabled else $Terrain
+	waypoints.route = progress
+	waypoints.visible = enabled
+	waypoints.queue_redraw()
+	queue_redraw()
 
 func solid_at(point: Vector2) -> bool:
 	return terrain.get_cell_source_id(terrain.local_to_map(point)) != -1
@@ -75,6 +87,8 @@ func _solids(rect: Rect2) -> Array[Rect2]:
 	return out
 
 func hit_at(point: Vector2) -> bool:
+	if route_enabled:
+		return solid_at(point)
 	for i in range(TARGETS.size()):
 		if TARGETS[i].has_point(point):
 			target_pulse[i] = 0.22
@@ -94,6 +108,19 @@ func fade(dt: float) -> void:
 
 func _draw() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if route_enabled:
+		for lamp in [Vector2(91,832), Vector2(279,832), Vector2(437,800),
+				Vector2(779,800), Vector2(1090,672), Vector2(1321,672),
+				Vector2(1652,608), Vector2(1936,544), Vector2(2320,544)]:
+			_prop(lamp - Vector2(16,64), 0)
+		for crate in [Vector2(129,832), Vector2(473,800), Vector2(710,800),
+				Vector2(1160,672), Vector2(1525,608), Vector2(2028,544)]:
+			_prop(crate - Vector2(16,64), 1)
+			_prop(crate + Vector2(12,-64), 2)
+		_banner(Vector2(405, 805), Color("#67455e"))
+		_banner(Vector2(1045, 682), Color("#51526e"))
+		_banner(Vector2(2210, 555), Color("#6f4a60"))
+		return
 	# Props below are scenery. Only the tile cells and unchanged TARGETS hit.
 	for lamp in [Vector2(91, 832), Vector2(384, 832), Vector2(558, 768),
 			Vector2(1111, 704), Vector2(1288, 608), Vector2(1694, 512), Vector2(2012, 416),

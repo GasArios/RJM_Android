@@ -75,12 +75,41 @@ from pathlib import Path
 w,h=struct.unpack('>II',Path('lab-smoke/range.png').read_bytes()[16:24])
 assert w>h, (w,h)
 s=min(w/1280,h/720)
-for k,x,y in [('center',w-150*s,h-156*s),('down',w-150*s,h-99*s),('world',w*.48,h*.4),('guns',97*s,h-103*s),('reload',97*s,h-177*s),('shotgun',w*.5+147*s,h*.5-1*s),('knob',w*.5,h*.5+139*s),('resume',w*.5,h*.5-62*s)]:
+for k,x,y in [('center',w-150*s,h-156*s),('down',w-150*s,h-99*s),('world',w*.48,h*.4),('guns',97*s,h-103*s),('reload',97*s,h-177*s),('shotgun',w*.5+147*s,h*.5-1*s),('knob',w*.5,h*.5+139*s),('resume',w*.5,h*.5-62*s),('mode',w*.5-150*s,h*.5+202*s),('shotgun_card',w*.5+145*s,h*.5),('retry',w*.5,h*.5+5*s)]:
  print(f'{k}="{round(x)} {round(y)}"')
 PY
 source lab-smoke/coords.sh
 # If Android briefly removed focus during startup, the app correctly paused.
 if grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then adb shell input tap $resume; fi
+wait_log 'RJM_GODOT harbor stage=0'
+adb shell input tap $guns
+wait_log 'RJM_GODOT menu=guns'
+capture locked-shotgun
+adb shell input tap $shotgun_card
+sleep 0.4
+adb logcat -d > lab-smoke/current.txt
+if grep -q 'RJM_GODOT selected SHOTGUN' lab-smoke/current.txt; then
+  echo "Locked shotgun selected before the supply case" >&2
+  exit 1
+fi
+adb shell input keyevent KEYCODE_BACK
+adb shell input tap $down
+wait_log 'RJM_GODOT harbor stage=1'
+capture route
+adb shell am force-stop "$app"
+adb logcat -c
+adb shell am start -W -n "$launcher"
+wait_log 'RJM_GODOT harbor stage=1'
+# Start the existing control regression in the untouched free-practice range.
+if ! grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then adb shell input keyevent KEYCODE_BACK; fi
+wait_log 'RJM_GODOT menu=pause'
+adb shell input tap $retry
+wait_log 'RJM_GODOT menu=world'
+adb shell input keyevent KEYCODE_BACK
+sleep 0.4
+adb shell input tap $mode
+wait_log 'RJM_GODOT free practice'
+adb logcat -c
 adb shell input tap $world
 adb shell input tap $center
 sleep 1
@@ -113,4 +142,4 @@ wait_log 'RJM_GODOT menu=pause'
 adb shell am start -W -n "$launcher"
 adb shell pidof "$app"
 ! grep -E 'FATAL EXCEPTION|Fatal signal|SCRIPT ERROR|CanvasShaderGLES3: Program linking failed' lab-smoke/current.txt
-echo "PASS Android Godot rendered frames, install, touch, guns, reload, Back, focus and setting restore"
+echo "PASS Android Godot rendered frames, route start/checkpoint, locked shotgun, practice controls and setting restore"
