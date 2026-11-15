@@ -14,8 +14,8 @@ Godot 4.6.3으로 만든 달빛 항구 첫 여정과 자유 시험장입니다. 
 | `scenes/harbor_terrain.tscn` / `scripts/draw_harbor_route.py` | 직접 편집할 수 있는 32px TileMapLayer 항구와 초기 배치 생성기 |
 | `src/harbor_route.gd` / `src/harbor_waypoints.gd` | 단계 및 체크포인트, 조준 안내, 항구 소품 |
 | `assets/harbor/` / `scripts/draw_harbor_art.py` | 직접 제작한 밤하늘·항구·소품과 다시 생성하는 스크립트 |
-| `src/recoil_body.gd` | 8방향 반동·착지 도트 그림 선택과 총구 위치 |
-| `assets/recoil-cels.svg` / `scripts/draw_recoil_sprite.py` | 28개의 고정 도트 그림과 생성 스크립트 |
+| `src/recoil_body.gd` | 실제 적용된 반동 크기와 방향으로 8방향 압축·복원 그림 선택, 착지 그림과 총구 위치 |
+| `assets/recoil-cels.svg` / `scripts/draw_recoil_sprite.py` | 36개의 고정 도트 그림과 생성 스크립트 |
 | `src/tuning.gd` | 원본 총기·물리 수치를 픽셀과 초 단위로 관리 |
 | `src/recoil.gd` / `src/field.gd` | 원본 Y-up 공식을 Godot Y-down으로 변환하고, X→Y 순서로 지형 충돌과 착지 보정 처리 |
 | `src/touch.gd` / `src/loadout.gd` | 손가락 역할과 사격·자동 교체·지상 재장전 |

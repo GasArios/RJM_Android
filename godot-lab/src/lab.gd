@@ -267,6 +267,8 @@ func advance(delta: float) -> void:
 				touch.block_until_release()
 				print("RJM_GODOT reload queued grounded=", grounded)
 	var world_delta := delta * (0.0 if menu in ["pause", "completed", "restart_route"] else (T.SLOW if menu == "guns" or touch.pinch else 1.0))
+	# Age the shot alongside hit stop. A landing found below starts at frame zero.
+	body.advance(world_delta)
 	var stop := minf(stop_left, world_delta)
 	stop_left -= stop
 	var dt := world_delta-stop
@@ -297,7 +299,6 @@ func advance(delta: float) -> void:
 		_update_route()
 	field.waypoints.advance(world_delta)
 	notice_left = maxf(notice_left-world_delta, 0.0)
-	body.advance(world_delta)
 	if menu != "pause":
 		visual_time += delta
 		flash = maxf(flash-delta, 0.0)
@@ -322,7 +323,7 @@ func _fire(slot: int, aim: Vector2) -> void:
 	var gun: Dictionary = T.GUNS[slot]
 	var before := velocity
 	velocity = Recoil.impulse(velocity, aim, gun.recoil, grounded, touch.brace_id != -999, maxf(launch_y-player.y, 0.0), gun.resist)
-	body.launch(velocity - before, maxf(stop_left, gun.stop), slot == 1)
+	body.launch(velocity - before, maxf(stop_left, gun.stop))
 	var count := int(gun.count)
 	for i in range(count):
 		var angle := deg_to_rad(lerpf(-gun.spread*0.5, gun.spread*0.5, float(i)/float(maxi(count-1, 1))))
