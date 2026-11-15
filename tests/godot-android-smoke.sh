@@ -94,8 +94,15 @@ for k,x,y in [('jump_low',-31,57),('travel',-65,0),('approach_high',-61,-22),('j
  print(f'{k}="{round(w+(x-150)*s)} {round(h+(y-156)*s)}"')
 PY
 source lab-smoke/coords.sh
+fire_once() {
+  # Keep the pointer down for at least one emulated render and physics frame.
+  adb shell input swipe "$1" "$2" "$1" "$2" 70
+}
 # If Android briefly removed focus during startup, the app correctly paused.
-if grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then adb shell input tap $resume; fi
+if grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then
+  adb shell input tap $resume
+  wait_log 'RJM_GODOT menu=world'
+fi
 wait_log 'RJM_GODOT harbor stage=0'
 adb shell input tap $guns
 wait_log 'RJM_GODOT menu=guns'
@@ -108,23 +115,28 @@ if grep -q 'RJM_GODOT selected SHOTGUN' lab-smoke/current.txt; then
   exit 1
 fi
 adb shell input keyevent KEYCODE_BACK
-adb shell input tap $down
+wait_log 'RJM_GODOT menu=world'
+fire_once $down
+wait_log 'RJM_GODOT shot REVOLVER'
 wait_log 'RJM_GODOT harbor stage=1'
 capture route
 launch_fresh
 wait_log 'RJM_GODOT harbor stage=1'
-if grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then adb shell input tap $resume; fi
-adb shell input tap $jump_low
+if grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then
+  adb shell input tap $resume
+  wait_log 'RJM_GODOT menu=world'
+fi
+fire_once $jump_low
 wait_log 'RJM_GODOT harbor stage=2'
 sleep 1.6
-adb shell input tap $travel
+fire_once $travel
 wait_log 'RJM_GODOT harbor stage=3'
 sleep 1.6
 capture supply
-adb shell input tap $approach_high
+fire_once $approach_high
 wait_log 'RJM_GODOT shot SHOTGUN'
 sleep 2.0
-adb shell input tap $jump_high
+fire_once $jump_high
 wait_log 'RJM_GODOT harbor stage=4'
 capture high-pier
 launch_fresh
@@ -134,8 +146,9 @@ if ! grep -q 'RJM_GODOT menu=pause' lab-smoke/current.txt; then adb shell input 
 wait_log 'RJM_GODOT menu=pause'
 adb shell input tap $retry
 wait_log 'RJM_GODOT menu=world'
+adb logcat -c
 adb shell input keyevent KEYCODE_BACK
-sleep 0.4
+wait_log 'RJM_GODOT menu=pause'
 adb shell input tap $mode
 wait_log 'RJM_GODOT free practice'
 adb logcat -c
@@ -143,7 +156,7 @@ adb shell input tap $world
 adb shell input tap $center
 sleep 1
 no_shots
-adb shell input tap $down
+fire_once $down
 wait_log 'RJM_GODOT shot REVOLVER'
 sleep 0.2
 capture recoil
@@ -152,7 +165,7 @@ wait_log 'RJM_GODOT menu=guns'
 capture guns
 adb shell input tap $shotgun
 wait_log 'RJM_GODOT selected SHOTGUN'
-adb shell input tap $down
+fire_once $down
 wait_log 'RJM_GODOT shot SHOTGUN'
 adb shell input tap $reload
 wait_log 'RJM_GODOT reload queued'
