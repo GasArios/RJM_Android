@@ -58,7 +58,7 @@ func update(pos: Vector2, grounded: bool, apex: int) -> bool:
 			if not grounded and apex >= 22:
 				stage = LOW_PIER
 		LOW_PIER:
-			if grounded and pos.x >= FIRST_WALL+8.0 and pos.x < UPPER_WALL and absf(pos.y-PIER_CHECKPOINT.y) < 2.0:
+			if grounded and pos.x >= FIRST_WALL-8.0 and pos.x < UPPER_WALL and absf(pos.y-PIER_CHECKPOINT.y) < 2.0:
 				stage = SUPPLY
 		SUPPLY:
 			if grounded and absf(pos.x-SUPPLY_POINT.x) <= 92.0 and absf(pos.y-SUPPLY_POINT.y) < 2.0:
@@ -101,24 +101,25 @@ func guide(pos: Vector2, grounded: bool, recoil: float) -> Vector2:
 		return Vector2.ZERO
 	if stage == FIRST_FLIGHT:
 		return Vector2.DOWN
-	if stage == SUPPLY:
+	if stage == SUPPLY and pos.y <= SUPPLY_POINT.y+2.0:
 		return _ground_hint(SUPPLY_POINT.x-pos.x, recoil)
 	if stage == BEACON and pos.y <= BEACON_POINT.y+2.0:
 		return _ground_hint(BEACON_POINT.x-pos.x, recoil)
 	var ledge := FIRST_WALL
 	var height := PIER_CHECKPOINT.y
-	if stage == UPPER_PIER:
+	# If the player falls to an earlier terrace, point at its next step again.
+	if stage >= UPPER_PIER and pos.y <= PIER_CHECKPOINT.y+2.0:
 		ledge = UPPER_WALL
 		height = UPPER_CHECKPOINT.y
-	elif stage == BEACON:
+	if stage == BEACON and pos.y <= UPPER_CHECKPOINT.y+2.0:
 		ledge = ROOF_WALL if pos.y >= UPPER_CHECKPOINT.y-2.0 else BEACON_WALL
 		height = 592.0 if ledge == ROOF_WALL else BEACON_POINT.y
 	if pos.y > height+6.0 and pos.x < ledge:
 		var gap := ledge-pos.x
-		var approach := 63.0 if stage == LOW_PIER else 92.0
+		var approach := 63.0 if ledge == FIRST_WALL and recoil < 800.0 else 92.0
 		if gap < 34.0 or gap > approach + 44.0:
 			return _ground_hint(gap-approach, recoil)
-		var tilt := clampf((gap-7.0)/(174.0 if stage == LOW_PIER else 284.0), 0.13, 0.59)
+		var tilt := clampf((gap-7.0)/(174.0 if ledge == FIRST_WALL and recoil < 800.0 else 284.0), 0.13, 0.59)
 		return Vector2(-tilt, 1.0).normalized()
 	return Vector2.ZERO
 

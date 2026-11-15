@@ -60,6 +60,11 @@ func _run() -> void:
 	check(lab.route.stage == Route.COMPLETE and lab.menu == "completed", "Could not light the beacon through normal recoil and touch")
 	check(stages.size() == 6, "The route skipped a required milestone")
 	check(lab.guns.equipped_count == 2 and lab.guns.selected == 1, "Supply case did not equip unlocked shotgun")
+	var recovery := Route.new()
+	recovery.stage = Route.BEACON
+	var below_low := recovery.guide(Vector2(220, 816), true, 950.0)
+	var below_high := recovery.guide(Vector2(800, 784), true, 950.0)
+	check(below_low.y > 0.0 and below_high.y > 0.0, "Route guide did not help the player recover from a lower pier")
 
 	var restored := Route.new()
 	restored.file_path = SAVE
