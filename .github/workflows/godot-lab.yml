@@ -112,5 +112,5 @@ jobs:
           cp lab-review/recoil.png lab-dist/RJM-Recoil.png
           gh release create "godot-lab-${{ github.run_number }}" lab-dist/* \
             --target "${{ github.sha }}" --prerelease --latest=false \
-            --title "RJM Godot Lab 0.1.2 (build ${{ github.run_number }})" \
+            --title "RJM Godot Lab 0.1.3 (build ${{ github.run_number }})" \
             --notes-file godot-lab/RELEASE.md

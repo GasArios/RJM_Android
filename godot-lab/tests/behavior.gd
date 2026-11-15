@@ -20,25 +20,39 @@ func check(test: bool, message: String) -> void:
 func _run() -> void:
 	var body := RecoilBody.new()
 	var center := Vector2(220, 816)
-	check(body.pose(center, true).is_equal_approx(Transform2D(0.0, center)), "Idle body is not square")
-	var diagonal := Vector2(1, -1).normalized()
-	body.launch(diagonal * 950.0, 0.12)
-	body.advance(0.045, diagonal * 950.0, false)
-	var squeeze := body.pose(center, true)
-	check(squeeze.basis_xform(diagonal).length() < 0.9, "Body did not compress during shot stop")
-	body.advance(0.12, diagonal * 950.0, false)
-	var stretch := body.pose(center, false)
-	check(stretch.basis_xform(diagonal).length() > 1.2 and stretch.basis_xform(diagonal.orthogonal()).length() < 0.9, "Body did not stretch along the actual recoil axis")
-	var edge := stretch.affine_inverse() * RecoilBody.edge(stretch, -diagonal)
-	check(is_equal_approx(maxf(absf(edge.x), absf(edge.y)), T.HALF), "Drawn barrel detached from the distorted body")
+	check(body.frame_id() == body.IDLE, "Idle body is not square")
+	var cels: Dictionary = {}
+	for i in range(8):
+		var angle := float(i) * PI * 0.25
+		for offset in [-0.22, 0.22]:
+			body.launch(Vector2.from_angle(angle+offset) * 950.0, 0.12, true)
+			check(body.frame_id() == i, "Nearby aims did not share a fixed recoil cel")
+			body.advance(0.125)
+			var cel := body.frame_id()
+			check(cel == i + 8, "Stretch did not keep the original octant")
+			cels[cel] = true
+			var aim_vector := -Vector2.from_angle(angle+offset)
+			check(absf((body.edge(center, false, cel, aim_vector)-center).normalized().cross(aim_vector)) < 0.001,
+					"Body quantization changed the barrel ray")
+			body.advance(0.135)
+			check(body.frame_id() == i + 16, "Recovery cel did not keep the original octant")
+			body.advance(0.10)
+			check(body.frame_id() == body.IDLE, "Recoil did not return to the square cel")
+	check(cels.size() == 8, "Expected eight distinct stretch cels")
+	var light := RecoilBody.new()
+	body.launch(Vector2.UP * 950.0, 0.12, true)
+	light.launch(Vector2.UP * 600.0, 0.12)
+	body.advance(0.22)
+	light.advance(0.22)
+	check(body.frame_id() == 14 and light.frame_id() == 22, "Shotgun must hold its stretch longer")
 	body.land(800.0)
-	var landing := body.pose(center, true)
-	check(landing.y.y < 0.8 and landing.x.x > 1.2, "Heavy landing did not flatten the body")
-	check(is_equal_approx((landing * Vector2(T.HALF, T.HALF)).y, center.y + T.HALF), "Flattened body lost contact with floor")
-	for i in range(60):
-		body.advance(1.0/60.0, Vector2.ZERO, true)
-	check(body.pose(center, true).is_equal_approx(Transform2D(0.0, center)), "Visual body did not return to square")
-	print("PASS Godot body squash, recoil stretch, attached barrel, floor alignment and recovery")
+	check(body.frame_id() == 25 and body.sprite_center(center, true, 25).y == center.y, "Landing cel lost its floor anchor")
+	check(body.edge(center, true, 25, Vector2.DOWN).y >= center.y+T.HALF-1.0, "Landing bottom disagrees with collision floor")
+	body.advance(0.06)
+	check(body.frame_id() == 26, "Landing did not step into recovery")
+	body.advance(0.12)
+	check(body.frame_id() == body.IDLE, "Landing did not return to square")
+	print("PASS Godot eight recoil directions, fixed cels, floating-point aim and landing recovery")
 
 	var aim := Touch.new()
 	check(aim.pad_down(12, Vector2.ZERO) and not aim.wants_fire(), "Pad center fired")
@@ -112,11 +126,11 @@ func _run() -> void:
 	lab.advance(1.0/60.0)
 	lab.set_menu("pause")
 	var stopped: Vector2 = lab.player
-	var stopped_body: Transform2D = lab.body.pose(lab.player, lab.grounded)
+	var stopped_body: int = lab.body.frame_id()
 	for i in range(30):
 		lab.advance(1.0/60.0)
 	check(lab.player == stopped and lab.guns.shot_count == 1, "Pause did not freeze input/physics")
-	check(lab.body.pose(lab.player, lab.grounded).is_equal_approx(stopped_body), "Paused body continued to animate")
+	check(lab.body.frame_id() == stopped_body, "Paused body continued to animate")
 	lab.set_menu("")
 	for i in range(30):
 		lab.advance(1.0/60.0)

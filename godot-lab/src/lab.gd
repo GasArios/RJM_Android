@@ -32,6 +32,7 @@ var bullets: Array[Dictionary] = []
 var direction := Vector2.DOWN
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var config := ConfigFile.new()
 	if config.load(PREFS) == OK:
 		zoom_level = clampf(float(config.get_value("lab", "zoom", T.DEFAULT_ZOOM)), T.MIN_ZOOM, T.MAX_ZOOM)
@@ -214,7 +215,7 @@ func advance(delta: float) -> void:
 			print("RJM_GODOT reloaded")
 		_move_bullets(dt)
 		field.fade(dt)
-	body.advance(world_delta, velocity, grounded)
+	body.advance(world_delta)
 	if menu != "pause":
 		visual_time += delta
 		flash = maxf(flash-delta, 0.0)
@@ -239,7 +240,7 @@ func _fire(slot: int, aim: Vector2) -> void:
 	var gun: Dictionary = T.GUNS[slot]
 	var before := velocity
 	velocity = Recoil.impulse(velocity, aim, gun.recoil, grounded, touch.brace_id != -999, maxf(launch_y-player.y, 0.0), gun.resist)
-	body.launch(velocity - before, maxf(stop_left, gun.stop))
+	body.launch(velocity - before, maxf(stop_left, gun.stop), slot == 1)
 	var count := int(gun.count)
 	for i in range(count):
 		var angle := deg_to_rad(lerpf(-gun.spread*0.5, gun.spread*0.5, float(i)/float(maxi(count-1, 1))))
@@ -272,15 +273,9 @@ func _draw() -> void:
 		var color := Color("#ffd180") if bullet.gold else Color("#fff0a3")
 		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, Color("#222031"), 6.0, true)
 		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, color, 3.0, true)
-	var transform := body.pose(player, grounded)
-	var square := Rect2(Vector2.ONE * -T.HALF, Vector2.ONE * T.HALF * 2.0)
-	draw_set_transform_matrix(transform)
-	draw_rect(square, Color("#3899f0"))
-	draw_rect(Rect2(-T.HALF + 2.0, -T.HALF + 2.0, T.HALF*2.0 - 4.0, 3.0), Color("#69c8ff"))
-	draw_rect(Rect2(-T.HALF + 2.0, T.HALF - 5.0, T.HALF*2.0 - 4.0, 3.0), Color("#2675ce"))
-	draw_rect(square, Color("#beefff"), false, 1.65)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
-	var muzzle := RecoilBody.edge(transform, direction)
+	var frame := body.frame_id()
+	body.draw_at(self, player, grounded, frame)
+	var muzzle := body.edge(player, grounded, frame, direction)
 	draw_line(muzzle - direction * 3.0, muzzle + direction * 11.0, Color("#233959"), 8.0, true)
 	draw_line(muzzle - direction * 3.0, muzzle + direction * 11.0, Color("#b3dbe8"), 4.0, true)
 	if menu == "" and touch.pad_offset.length() >= T.DEAD_ZONE and not touch.blocked:

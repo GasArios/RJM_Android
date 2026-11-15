@@ -1,75 +1,78 @@
 extends RefCounted
-## Render-only squash and stretch. The physics box never reads this state.
+## All movement and hit boxes remain continuous. Only this sprite clock is stepped.
 const T = preload("res://src/tuning.gd")
-const KICK_RECOVERY := 0.28
-const KICK_STRETCH_RISE := 0.045
-const LAND_RECOVERY := 0.24
-const KICK_LIMIT := 0.30
-const TRAVEL_LIMIT := 0.12
+const Data = preload("res://src/recoil_cel_data.gd")
+const ART = preload("res://assets/recoil-cels.svg")
+const IDLE := 24
+const PIXEL := 2.0
+const CELL := Vector2(Data.CELL, Data.CELL)
+const HALF_CELL := CELL * 0.5
+const SETTLE := 0.065
+const LAND_STEP := 0.055
 
-var kick_axis := Vector2.UP
-var kick_strength := 0.0
-var kick_age := 0.0
-var windup := 0.0
-var land_age := LAND_RECOVERY
-var land_strength := 0.0
-var travel := Vector2.ZERO
+enum { REST, RECOIL, LAND }
+var state := REST
+var octant := 0
+var age := 0.0
+var squeeze_time := 0.0
+var stretch_time := 0.0
+var hard_landing := false
 
-func launch(impulse: Vector2, hold: float) -> void:
+func launch(impulse: Vector2, hit_stop: float, heavy := false) -> void:
 	if impulse.length_squared() < 1.0:
 		return
-	kick_axis = impulse.normalized()
-	kick_strength = clampf(impulse.length() / 3000.0, 0.0, KICK_LIMIT)
-	kick_age = 0.0
-	windup = hold
-	land_age = LAND_RECOVERY
+	octant = posmod(roundi(impulse.angle() / (PI * 0.25)), Data.COLS)
+	squeeze_time = maxf(hit_stop, 0.05)
+	stretch_time = 0.13 if heavy else 0.085
+	age = 0.0
+	state = RECOIL
 
 func land(speed: float) -> void:
 	if speed < 100.0:
 		return
-	land_strength = clampf((speed - 100.0) / 2200.0, 0.0, 0.26)
-	land_age = 0.0
-	kick_strength = 0.0
+	hard_landing = speed >= 640.0
+	age = 0.0
+	state = LAND
 
-func advance(dt: float, velocity: Vector2, grounded: bool) -> void:
-	kick_age += dt
-	land_age += dt
-	var target := Vector2.ZERO if grounded else velocity.limit_length(1200.0) / 1200.0
-	travel = travel.lerp(target, 1.0 - exp(-18.0 * dt))
+func advance(dt: float) -> void:
+	age += dt
 
-func pose(center: Vector2, grounded: bool) -> Transform2D:
-	var motion := travel.length()
-	var axis := travel.normalized() if motion > 0.001 else Vector2.UP
-	var stretch := motion * TRAVEL_LIMIT
-	if kick_strength > 0.0 and kick_age < windup + KICK_RECOVERY:
-		axis = kick_axis
-		var squeeze := -kick_strength * 0.53
-		if kick_age < windup:
-			stretch = squeeze * smoothstep(0.0, minf(windup, 0.028), kick_age)
-		else:
-			var push := kick_age - windup
-			if push < KICK_STRETCH_RISE:
-				stretch = lerpf(squeeze, stretch + kick_strength, smoothstep(0.0, KICK_STRETCH_RISE, push))
-			else:
-				var t := (push - KICK_STRETCH_RISE) / (KICK_RECOVERY - KICK_STRETCH_RISE)
-				# A short overshoot before the body settles back to travel.
-				stretch += kick_strength * cos(t * TAU * 0.83) * pow(1.0 - t, 2.0)
-	if land_age < LAND_RECOVERY:
-		axis = Vector2.DOWN
-		var t := land_age / LAND_RECOVERY
-		stretch = -land_strength * cos(t * TAU * 0.88) * pow(1.0 - t, 2.0)
-	var along := 1.0 + clampf(stretch, -0.26, 0.38)
-	var across := 1.0 / along
-	# Project onto the motion axis without rotating the whole resting square.
-	var x := Vector2.RIGHT * across + axis * axis.x * (along - across)
-	var y := Vector2.DOWN * across + axis * axis.y * (along - across)
+func frame_id() -> int:
+	match state:
+		RECOIL:
+			if age < squeeze_time:
+				return octant
+			if age < squeeze_time + stretch_time:
+				return Data.COLS + octant
+			if age < squeeze_time + stretch_time + SETTLE:
+				return 2 * Data.COLS + octant
+		LAND:
+			var step := floori(age / LAND_STEP) + (0 if hard_landing else 1)
+			if step < 3:
+				return IDLE + 1 + step
+	return IDLE
+
+func sprite_center(center: Vector2, grounded: bool, frame: int) -> Vector2:
 	if grounded:
-		# Keep the lowest corner on the unchanged collision floor.
-		center.y += T.HALF * (1.0 - absf(x.y) - absf(y.y))
-	return Transform2D(x, y, center)
+		center.y += T.HALF - float(Data.BOTTOM[frame]) * PIXEL
+	return center
 
-static func edge(transform: Transform2D, direction: Vector2) -> Vector2:
-	# Invert the scaled basis, without applying translation to the aim vector.
-	var local := transform.affine_inverse().basis_xform(direction)
-	var distance := T.HALF / maxf(maxf(absf(local.x), absf(local.y)), 0.0001)
-	return transform.origin + direction * distance
+func draw_at(canvas: CanvasItem, center: Vector2, grounded: bool, frame: int) -> void:
+	var base := sprite_center(center, grounded, frame)
+	var cell := Vector2(frame % Data.COLS, floori(float(frame) / Data.COLS))
+	canvas.draw_texture_rect_region(ART, Rect2(base - HALF_CELL * PIXEL, CELL * PIXEL),
+			Rect2(cell * CELL, CELL))
+
+func edge(center: Vector2, grounded: bool, frame: int, direction: Vector2) -> Vector2:
+	# Follow the actual silhouette with a short pixel ray. This is only the
+	# barrel drawing anchor; projectile origin and aim still use the physics box.
+	var base := sprite_center(center, grounded, frame)
+	var rows: String = Data.SPANS[frame]
+	for sample in range(Data.CELL * 3):
+		var dist := float(sample) * 0.5
+		var pixel := Vector2i((HALF_CELL + direction * dist).floor())
+		if (pixel.y < 0 or pixel.y >= Data.CELL
+				or pixel.x < rows.unicode_at(pixel.y * 2) - 65
+				or pixel.x >= rows.unicode_at(pixel.y * 2 + 1) - 65):
+			return base + direction * (maxf(0.0, dist - 0.25) * PIXEL)
+	return base
