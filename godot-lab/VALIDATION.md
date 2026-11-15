@@ -1,3 +1,10 @@
+# 달빛 항구 첫 여정 0.1.4 검증
+
+- [빌드·Android 15·배포 검증](https://github.com/GasArios/RJM_Android/actions/runs/43667768111)과 [공개 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-12). ARM64, versionCode 12, 26,007,624 bytes. APK SHA-256: `3f83d32c3d85301c27436e36009bb03445b89ab5e8aaf80073b3bed6d2e77055`. 기존 Godot Lab과 같은 서명 인증서입니다.
+- Godot 자동 플레이가 우측 패드의 금빛 안내를 11번 따라 눌러 등대를 밝혔습니다. 플레이어 좌표를 강제로 이동시키지 않았습니다. 체크포인트, 총기 잠금과 후방 낙하 시 안내, 진행 초기화 및 기존 시험장 320셀 유지도 확인했습니다.
+- Android 15 에뮬레이터에서 터치로 첫 발사, 낮은 부두, 보급함 해금, 샷건으로 높은 부두 착지, 프로세스 종료 후 진행 복원을 검증했습니다. 기존 시험장의 오발 방지, 무기 선택, 전체 재장전, 뒤로가기, 앱 전환 일시정지와 조작 설정 복원도 통과했습니다.
+- 2400×1080 인게임 캡처에서 시작 화면, 샷건 해금 및 높은 부두의 목표와 조준 표시를 확인했습니다. 갤럭시 조작감은 실기기 테스트가 남아 있습니다.
+
 # 8방향 도트 반동 0.1.3 검증
 
 - [최종 빌드 및 Android 15 재검증](https://github.com/GasArios/RJM_Android/actions/runs/43657685523)과 [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-9). ARM64, versionCode 9, 25,982,516 bytes. 공개 파일의 SHA-256 `62d7c8243d6e88cdf3d378807db911f3f9fde2ae31068fafdb8e5c110dde064c`가 CI 결과와 일치하며, 이전 0.1.2와 같은 서명 인증서입니다.

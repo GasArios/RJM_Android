@@ -2,7 +2,7 @@
 
 Godot 4.6.3으로 만든 달빛 항구 첫 여정과 자유 시험장입니다. raylib 앱과는 다른 패키지 `com.gasarios.rjm.lab`으로, 설정과 설치 상태가 분리됩니다.
 
-**[APK 릴리스](https://github.com/GasArios/RJM_Android/releases)** · [8방향 도트 시트](assets/recoil-cels.svg) · [검증 기록](VALIDATION.md)
+**[0.1.4 APK — 약 26 MB](https://github.com/GasArios/RJM_Android/releases/download/godot-lab-12/RJM-Godot-Lab.apk)** · [8방향 도트 시트](assets/recoil-cels.svg) · [검증 기록](VALIDATION.md)
 
 기존 Godot Lab은 삭제하지 않고 업데이트할 수 있습니다. [이전 시험장 0.1.0](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-2)도 확인할 수 있습니다.
 
