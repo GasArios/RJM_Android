@@ -1,5 +1,6 @@
 # 반동 도트 애니메이션 0.1.5 검증
 
+- [최종 빌드 및 Android 15 재검증](https://github.com/GasArios/RJM_Android/actions/runs/43670510482)과 [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-14). ARM64, versionCode 14, 26,007,624 bytes. 공개 APK의 SHA-256 `ea1df74800d3fe3744c07ff7f7e6473c668c124a586d8b27292025de3f4eda92`가 빌드 결과와 일치합니다.
 - [Android 15 검토 빌드](https://github.com/GasArios/RJM_Android/actions/runs/43670108706)로 기존 사격·무기 교체·저장 복원과 항구 이동을 다시 확인했습니다.
 - 자동 테스트로 강한 압축 → 가벼운 압축 → 밀려날 때 팽창 → 원래 모양 순서, 8방향의 고정 프레임, 착지 시 바닥 접점, 일시정지를 확인했습니다.
 - 0.1.4와 수직 리볼버, 수직 샷건, 대각선 샷건, 버티기 샷건 발사 후 96틱을 비교했습니다. 네 상황 모두 같은 좌표와 접지 상태를 기록했습니다. 상승 높이는 76px / 164px입니다. 버틴 샷건은 정사각형이 아닌 프레임이 18개에서 2개로 줄었습니다.
