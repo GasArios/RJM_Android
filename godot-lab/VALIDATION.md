@@ -1,3 +1,11 @@
+# 8방향 도트 반동 0.1.3 검증
+
+- [Godot 및 Android 15 검증](https://github.com/GasArios/RJM_Android/actions/runs/43657340400)
+- 8방향의 눌림·늘어남·복귀 그림과 정지·착지 그림까지 28장입니다. `scripts/draw_recoil_sprite.py`로 SVG 시트와 총구 위치를 찾는 픽셀 데이터를 함께 생성합니다.
+- 실행 중에는 몸 이미지를 회전하거나 보간하지 않습니다. 실제 속도 변화에서 발사마다 방향 프레임을 고르고, 총구·탄환과 물리는 연속 방향을 유지합니다.
+- 자동 검사로 8방향, 한 방향 내부의 각도 차이, 샷건 유지 시간, 착지 시 아랫변, 일시정지, 프레임 복귀를 확인했습니다. 리볼버 76px, 샷건 164px 상승 높이와 320개 발판 좌표를 유지했습니다.
+- Android 캡처에서 정지한 사각형과 발사 후 계단형 외곽선을 확인했습니다. 설치·사격·재장전·뒤로가기·설정 복원도 통과했습니다. 갤럭시에서의 움직임 체감은 실기기 테스트로 확인합니다.
+
 # 캐릭터 반동 애니메이션 0.1.2 검증
 
 - [최종 빌드 및 Android 15 재검증](https://github.com/GasArios/RJM_Android/actions/runs/43591009601)과 [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-7). ARM64, versionCode 7, 25,978,059 bytes. 공개 파일의 SHA-256 `2dca3de2c49b5d1a02717ed5cc2281c2a65b6515fe81fa2c5118d51e8894a938`가 빌드 결과와 일치합니다.
