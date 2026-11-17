@@ -1,3 +1,9 @@
+# 달빛 항구 도트 스타일 0.1.6 검증
+
+- [Android 15 검토](https://github.com/GasArios/RJM_Android/actions/runs/44021907126)와 [최종 배포 검증](https://github.com/GasArios/RJM_Android/actions/runs/44022523631). [공개 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-16): ARM64, versionCode 16, SHA-256 `d5f72c1cb2644caa975d48eff9a6b2bae4addde473ba545c80c0b73cd959041d`.
+- 2400×1080 캡처에서 시작 안내, 높은 부두, 일시정지 메뉴와 계단형 패드가 표시되는 것을 확인했습니다. 항구와 메뉴의 주요 설명은 작은 기본 픽셀 글씨의 크기를 더 낮추지 않고 표시합니다.
+- Godot 테스트에서 반동 높이 76/164px, 항구 완주, 사격·충돌·장전을 재검증했습니다. Android 15에서는 기존 터치 위치로 조작, 높은 부두까지 진행, 앱 재실행 후 저장 복원을 확인했습니다.
+
 # 반동 도트 애니메이션 0.1.5 검증
 
 - [최종 빌드 및 Android 15 재검증](https://github.com/GasArios/RJM_Android/actions/runs/43670510482)과 [배포 APK](https://github.com/GasArios/RJM_Android/releases/tag/godot-lab-14). ARM64, versionCode 14, 26,007,624 bytes. 공개 APK의 SHA-256 `ea1df74800d3fe3744c07ff7f7e6473c668c124a586d8b27292025de3f4eda92`가 빌드 결과와 일치합니다.
