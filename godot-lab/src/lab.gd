@@ -5,6 +5,7 @@ const HarborRoute = preload("res://src/harbor_route.gd")
 const RecoilBody = preload("res://src/recoil_body.gd")
 const Loadout = preload("res://src/loadout.gd")
 const Touch = preload("res://src/touch.gd")
+const Pixel = preload("res://src/pixel_ink.gd")
 const PREFS := "user://lab-settings.cfg"
 const MOUSE_ID := -1
 
@@ -193,7 +194,7 @@ func _update_route() -> void:
 		return
 	match route.stage:
 		HarborRoute.LOW_PIER:
-			_show_notice("LUMINA: Good. The harbor steps are yours to climb.")
+			_show_notice("LUMINA: Good. Now try the harbor steps.")
 		HarborRoute.SUPPLY:
 			_show_notice("CHECKPOINT REACHED")
 		HarborRoute.UPPER_PIER:
@@ -354,19 +355,23 @@ func _move_bullets(dt: float) -> void:
 func _draw() -> void:
 	for bullet in bullets:
 		var color := Color("#ffd180") if bullet.gold else Color("#fff0a3")
-		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, Color("#222031"), 6.0, true)
-		draw_line(bullet.pos-bullet.dir*13.0, bullet.pos, color, 3.0, true)
+		Pixel.line(self, bullet.pos-bullet.dir*12.0, bullet.pos, Color("#222031"), 3)
+		Pixel.line(self, bullet.pos-bullet.dir*10.0, bullet.pos, color)
 	var frame := body.frame_id()
 	body.draw_at(self, player, grounded, frame)
 	var muzzle := body.edge(player, grounded, frame, direction)
-	draw_line(muzzle - direction * 3.0, muzzle + direction * 11.0, Color("#233959"), 8.0, true)
-	draw_line(muzzle - direction * 3.0, muzzle + direction * 11.0, Color("#b3dbe8"), 4.0, true)
+	Pixel.line(self, muzzle-direction*3.0, muzzle+direction*11.0, Color("#233959"), 4)
+	Pixel.line(self, muzzle-direction*3.0, muzzle+direction*11.0, Color("#b3dbe8"), 2)
 	if menu == "" and touch.pad_offset.length() >= T.DEAD_ZONE and not touch.blocked:
-		draw_line(player+direction*36, player+direction*56, Color("#ffc77f"), 2.0, true)
+		Pixel.line(self, player+direction*36, player+direction*56, Color("#ffc77f"))
 		var v := -direction
 		var tip := player+v*58
-		draw_line(player+v*21, tip, Color("#68d4c1"), 2.0, true)
-		draw_line(tip, tip-v.rotated(0.5)*12, Color("#68d4c1"), 2.0, true)
-		draw_line(tip, tip-v.rotated(-0.5)*12, Color("#68d4c1"), 2.0, true)
+		Pixel.line(self, player+v*21, tip, Color("#68d4c1"))
+		Pixel.line(self, tip, tip-v.rotated(0.5)*12, Color("#68d4c1"))
+		Pixel.line(self, tip, tip-v.rotated(-0.5)*12, Color("#68d4c1"))
 	if flash > 0.0:
-		draw_circle(muzzle + direction*15.0, 8.0, Color("#fff1a5"))
+		var p := ((muzzle+direction*15.0)*0.5).round()*2.0
+		var ray := 8.0 if flash >= 0.04 else 4.0
+		draw_rect(Rect2(p-Vector2(ray,2),Vector2(ray*2.0,4)),Color("#fcbd69"))
+		draw_rect(Rect2(p-Vector2(2,ray),Vector2(4,ray*2.0)),Color("#fcbd69"))
+		draw_rect(Rect2(p-Vector2(3,3),Vector2(6,6)),Color("#fff1a5"))

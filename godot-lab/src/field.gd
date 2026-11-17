@@ -150,7 +150,9 @@ func _prop(at: Vector2, index: int) -> void:
 
 func _banner(at: Vector2, cloth: Color) -> void:
 	draw_rect(Rect2(at, Vector2(26,2)), Color("#76697c"))
-	draw_colored_polygon(PackedVector2Array([at+Vector2(3,2), at+Vector2(23,2),
-		at+Vector2(23,36), at+Vector2(13,30), at+Vector2(3,36)]), cloth)
-	draw_rect(Rect2(at+Vector2(12,11), Vector2(3,13)), Color("#a18786"))
-	draw_rect(Rect2(at+Vector2(8,15), Vector2(11,3)), Color("#a18786"))
+	draw_rect(Rect2(at+Vector2(4,2),Vector2(20,28)),cloth)
+	for i in range(3):
+		draw_rect(Rect2(at+Vector2(4,30+i*2),Vector2(6-i*2,2)),cloth)
+		draw_rect(Rect2(at+Vector2(18+i*2,30+i*2),Vector2(6-i*2,2)),cloth)
+	draw_rect(Rect2(at+Vector2(12,10), Vector2(4,14)), Color("#a18786"))
+	draw_rect(Rect2(at+Vector2(8,14), Vector2(12,4)), Color("#a18786"))

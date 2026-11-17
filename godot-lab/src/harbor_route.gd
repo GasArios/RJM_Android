@@ -77,12 +77,12 @@ func title() -> String:
 
 func instruction(pos: Vector2) -> String:
 	match stage:
-		FIRST_FLIGHT: return "Pull the right pad down. Recoil sends you up."
-		LOW_PIER: return "Follow the gold aim dot to land on the step."
+		FIRST_FLIGHT: return "Pull the pad down. Recoil sends you up."
+		LOW_PIER: return "Follow the gold dot onto the step."
 		SUPPLY: return "Land near the brass case on the pier."
 		UPPER_PIER:
 			if pos.x > UPPER_WALL - 35.0 and pos.y > UPPER_CHECKPOINT.y:
-				return "Back off a little, then jump above the wall."
+				return "Back off, then jump above the wall."
 			return "Use the shotgun to rise onto the high pier."
 		BEACON: return "Climb the terraces and land by the lamp."
 		COMPLETE: return "The harbor has its light again."

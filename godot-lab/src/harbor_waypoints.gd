@@ -52,8 +52,10 @@ func _supply(pos: Vector2, stocked: bool) -> void:
 func _beacon(pos: Vector2, lit: bool) -> void:
 	var p := pos + Vector2(0, 16)
 	if lit:
-		draw_circle(p+Vector2(0,-52), 48.0, Color("#e9aa5514"))
-		draw_circle(p+Vector2(0,-52), 32.0, Color("#e9aa5521"))
+		_pixel(p, -46, -72, 92, 40, "#e9aa5514")
+		_pixel(p, -32, -86, 64, 14, "#e9aa5514")
+		_pixel(p, -32, -32, 64, 14, "#e9aa5514")
+		_pixel(p, -24, -76, 48, 48, "#e9aa5521")
 	_pixel(p, -30, -4, 60, 4, "#837483")
 	_pixel(p, -18, -34, 36, 30, "#454057")
 	_pixel(p, -22, -38, 44, 4, "#928085")

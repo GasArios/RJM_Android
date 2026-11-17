@@ -113,7 +113,8 @@ jobs:
         run: |
           cp lab-review/range.png lab-dist/RJM-Moonlit-Harbor.png
           cp lab-review/recoil.png lab-dist/RJM-Recoil.png
+          cp lab-review/pause.png lab-dist/RJM-Pixel-Menu.png
           gh release create "godot-lab-${{ github.run_number }}" lab-dist/* \
             --target "${{ github.sha }}" --prerelease --latest=false \
-            --title "RJM Godot Lab 0.1.5 (build ${{ github.run_number }})" \
+            --title "RJM Godot Lab 0.1.6 (build ${{ github.run_number }})" \
             --notes-file godot-lab/RELEASE.md
